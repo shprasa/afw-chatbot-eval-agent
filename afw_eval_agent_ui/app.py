@@ -15,6 +15,7 @@ from afw_eval_agent.background_job import (
     cancel_job,
     clear_job,
     job_is_active,
+    list_user_jobs,
     load_job_state,
     normalize_owner_email,
     read_job_log_tail,
@@ -94,84 +95,129 @@ def _auto_publish(ws: Workspace, message: str) -> dict:
     return try_publish_workspace(ws, message=message, secrets=getattr(st, "secrets", None))
 
 
-def _render_active_job_panel(ws: Workspace, owner_email: str) -> bool:
-    state = sync_job_state(ws, owner_email)
-    if not state:
-        return False
+def _status_badge(status: str) -> str:
+    labels = {
+        "pending": "Pending",
+        "running": "In progress",
+        "cancelling": "Cancelling",
+        "completed": "Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+    }
+    return labels.get(status, status or "Unknown")
 
+
+def _render_job_detail(ws: Workspace, owner_email: str, state: dict, *, show_log: bool) -> None:
     status = state.get("status", "")
-    with st.container(border=True):
-        st.markdown("### Evaluation status")
-        st.caption(f"Your runs are tracked by **{owner_email}** — other users cannot see or cancel them.")
-        if status in {"pending", "running", "cancelling"}:
-            st.warning(
-                f"**In progress:** {state.get('run_label', 'eval')} · "
-                f"{state.get('dataset', '')} · "
-                "You can switch tabs or pages — this run continues in the background."
-            )
-        elif status == "completed":
-            st.success(
-                f"**Completed:** `{state.get('result_run_id', '')}` · "
-                f"{state.get('run_label', '')}"
-            )
-            if state.get("email_status"):
-                st.caption(state["email_status"])
-            if state.get("github_publish_status"):
-                st.caption(state["github_publish_status"])
-            st.session_state["last_run_id"] = state.get("result_run_id")
-        elif status == "cancelled":
-            st.warning(f"**Cancelled:** {state.get('error', 'Stopped by user.')}")
-        elif status == "failed":
-            st.error(f"**Failed:** {state.get('error', 'Unknown error')}")
-            if state.get("email_status"):
-                st.caption(state["email_status"])
+    st.markdown(
+        f"**{state.get('run_label', 'eval')}** · `{state.get('job_id', '')}` · "
+        f"**{_status_badge(status)}**"
+    )
+    st.caption(
+        f"{state.get('dataset', '')} · {state.get('prompt_label', '')} · "
+        f"started {state.get('started_utc', '')[:19].replace('T', ' ')} UTC"
+    )
 
-        total = max(int(state.get("total") or 0), 1)
-        completed = min(int(state.get("completed") or 0), total)
-        remaining = max(int(state.get("remaining") or 0), 0)
-        in_flight = int(state.get("in_flight") or 0)
+    if status in {"pending", "running", "cancelling"}:
+        st.info(
+            "This run continues in the background — you can switch tabs or pages. "
+            "First log lines may take 1–3 minutes."
+        )
+    elif status == "completed":
+        st.success(f"Run ID: `{state.get('result_run_id', '')}`")
+        if state.get("github_publish_status"):
+            st.caption(state["github_publish_status"])
+        if state.get("email_status"):
+            st.caption(state["email_status"])
+        st.session_state["last_run_id"] = state.get("result_run_id")
+    elif status == "cancelled":
+        st.warning(state.get("error", "Stopped by user."))
+    elif status == "failed":
+        st.error(state.get("error", "Unknown error"))
+        if state.get("email_status"):
+            st.caption(state["email_status"])
 
-        if status in {"pending", "running", "cancelling", "completed"}:
-            st.progress(
-                completed / total if status != "completed" else 1.0,
-                text=f"{completed} / {total} personas complete",
-            )
-            bits = [f"**{completed}** completed", f"**{remaining}** remaining", f"**{total}** total"]
-            if in_flight and status in {"pending", "running", "cancelling"}:
-                bits.insert(1, f"**{in_flight}** in progress")
-            hint = ""
-            if status in {"pending", "running"} and completed == 0 and in_flight:
-                hint = (
-                    " First completion often takes **1–3 minutes** "
-                    "(multiple API turns per persona)."
-                )
-            st.caption(" · ".join(bits) + hint)
+    total = max(int(state.get("total") or 0), 1)
+    completed = min(int(state.get("completed") or 0), total)
+    remaining = max(int(state.get("remaining") or 0), 0)
+    in_flight = int(state.get("in_flight") or 0)
 
-        if status in {"pending", "running", "cancelling"}:
-            if st.button("Cancel evaluation", type="secondary", key="cancel_eval_job"):
-                try:
-                    cancel_job(ws, owner_email)
-                    st.warning("Evaluation cancelled.")
-                    st.rerun()
-                except Exception as exc:
-                    st.error(str(exc))
+    if status in {"pending", "running", "cancelling", "completed"} and total:
+        st.progress(
+            completed / total if status != "completed" else 1.0,
+            text=f"{completed} / {total} personas complete",
+        )
+        bits = [f"**{completed}** completed", f"**{remaining}** remaining", f"**{total}** total"]
+        if in_flight and status in {"pending", "running", "cancelling"}:
+            bits.insert(1, f"**{in_flight}** in progress")
+        st.caption(" · ".join(bits))
 
+    if show_log and status in {"pending", "running", "cancelling", "completed", "failed"}:
         st.markdown("**Live session log**")
         log_text = read_job_log_tail(ws, owner_email)
         st.code(log_text or "Waiting for log output…", language=None)
 
-        if status in {"completed", "failed", "cancelled"}:
-            if st.button("Clear evaluation status", key="clear_job_status"):
-                clear_job(ws, owner_email)
+    if show_log and status in {"pending", "running", "cancelling"}:
+        if st.button("Cancel evaluation", type="secondary", key=f"cancel_{state.get('job_id')}"):
+            try:
+                cancel_job(ws, owner_email)
+                st.warning("Evaluation cancelled.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+
+    if show_log and status in {"completed", "failed", "cancelled"}:
+        if st.button("Dismiss from active list", key=f"clear_{state.get('job_id')}"):
+            clear_job(ws, owner_email)
+            st.rerun()
+
+
+def _render_my_runs_panel(ws: Workspace, owner_email: str) -> None:
+    jobs = list_user_jobs(ws, owner_email)
+    active = jobs["active"]
+    history = jobs["history"]
+
+    with st.container(border=True):
+        head_l, head_r = st.columns([4, 1])
+        with head_l:
+            st.markdown("### My evaluation runs")
+            st.caption(f"Showing runs for **{owner_email}** only.")
+        with head_r:
+            if st.button("Hide", key="hide_my_runs_panel"):
+                st.session_state["eval_show_runs_panel"] = False
                 st.rerun()
 
-    return job_is_active(state)
+        if active:
+            st.markdown("#### Current")
+            _render_job_detail(ws, owner_email, active, show_log=True)
+        else:
+            st.info("No evaluation in progress for this email.")
+
+        st.markdown("#### Previous runs")
+        if not history:
+            st.caption("No finished runs saved yet for this email.")
+        else:
+            for record in history:
+                with st.expander(
+                    f"{record.get('run_label', 'eval')} · {_status_badge(record.get('status', ''))} · "
+                    f"{record.get('archived_utc', '')[:19].replace('T', ' ')} UTC",
+                    expanded=False,
+                ):
+                    if record.get("result_run_id"):
+                        st.write(f"**Run ID:** `{record['result_run_id']}`")
+                    st.write(f"**Dataset:** {record.get('dataset', '')}")
+                    st.write(f"**Prompt:** {record.get('prompt_label', '')}")
+                    st.write(f"**Personas:** {record.get('completed', 0)} / {record.get('total', 0)}")
+                    if record.get("error"):
+                        st.write(f"**Note:** {record['error']}")
+                    if record.get("github_publish_status"):
+                        st.caption(record["github_publish_status"])
 
 
 @st.fragment(run_every=timedelta(seconds=5))
-def _poll_active_job(ws: Workspace, owner_email: str) -> None:
-    if job_is_active(sync_job_state(ws, owner_email)):
-        _render_active_job_panel(ws, owner_email)
+def _poll_my_runs_panel(ws: Workspace, owner_email: str) -> None:
+    if st.session_state.get("eval_show_runs_panel"):
+        _render_my_runs_panel(ws, owner_email)
 
 
 def render_agent() -> None:
@@ -209,9 +255,27 @@ def render_agent() -> None:
 
         job_running = False
         if owner_email:
-            job_running = _render_active_job_panel(ws, owner_email)
+            active_state = sync_job_state(ws, owner_email)
+            job_running = job_is_active(active_state)
+            history_count = len(list_user_jobs(ws, owner_email)["history"])
+            btn_label = "View in-progress run" if job_running else "View my runs"
+            if history_count and not job_running:
+                btn_label = f"View my runs ({history_count} previous)"
+
+            btn_col, _ = st.columns([1, 3])
+            with btn_col:
+                if st.button(btn_label, type="primary" if job_running else "secondary", key="view_my_runs_btn"):
+                    st.session_state["eval_show_runs_panel"] = True
+                    st.rerun()
+
             if job_running:
-                _poll_active_job(ws, owner_email)
+                st.caption(
+                    f"Run **{active_state.get('run_label', 'eval')}** is in progress — "
+                    "click **View in-progress run** for live progress and logs."
+                )
+
+            if st.session_state.get("eval_show_runs_panel"):
+                _poll_my_runs_panel(ws, owner_email)
         elif owner_input.strip():
             st.error("Enter a valid email address to start or view evaluations.")
 
@@ -381,7 +445,7 @@ def render_agent() -> None:
             workers = c3.number_input("Parallel workers", min_value=1, max_value=12, value=6)
 
             if job_running:
-                st.caption("An evaluation is already running. See **Evaluation status** above.")
+                st.caption("An evaluation is already running. Use **View in-progress run** above.")
 
             if st.button(
                 "Start evaluation",
@@ -406,11 +470,12 @@ def render_agent() -> None:
                             resume=resume,
                             eval_limit=int(limit) if limit else None,
                             parallel_workers=int(workers),
+                            github_env=_github_env(),
                         )
+                        st.session_state["eval_show_runs_panel"] = True
                         st.success(
                             "Evaluation started in the background. "
-                            "You can stay on this tab or switch to the Dashboard — "
-                            "progress is shown under **Evaluation status**."
+                            "Open **View in-progress run** above for live progress."
                         )
                         st.rerun()
                     except Exception as exc:
