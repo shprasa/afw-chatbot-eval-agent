@@ -1,6 +1,6 @@
 # AFW Screening Chatbot Evaluation Agent — Technical Reference
 
-> **External team (beginners):** use **[EXTERNAL_TEAM_GUIDE.md](../EXTERNAL_TEAM_GUIDE.md)** first.  
+> **AFW team (beginners):** use **[AFW_TEAM_GUIDE.md](../AFW_TEAM_GUIDE.md)** first.  
 > This file is for developers and operators who need CLI / env-var detail.
 
 Angel Flight West (AFW) live evaluation agent for screening chatbot accuracy.  
@@ -10,11 +10,10 @@ Built for the UC Davis Graduate School of Management MSBA Angel Flight West Dema
 
 ## Hosted platform (primary)
 
-| Component | Access |
-|-----------|--------|
-| **Dashboard** | Streamlit app → sidebar → **Dashboard** |
-| **Eval Agent** | Streamlit app → sidebar → **Eval Agent** |
-| **GitHub data** | https://github.com/shprasa/afw-chatbot-eval-agent |
+| Component | Direct link |
+|-----------|-------------|
+| **Eval Agent** | https://afw-chatbot-eval-agent.streamlit.app/Eval_Agent |
+| **Dashboard** | https://afw-chatbot-eval-agent.streamlit.app |
 
 Entry file: `streamlit_app.py`
 
@@ -25,7 +24,7 @@ Entry file: `streamlit_app.py`
 1. **Live eval** — POSTs each persona's user messages to the AFW chatbot API (no manual labels leaked).
 2. **Scores** — Compares predicted vs truth final outcome and per-checkpoint (q1–q8).
 3. **Reports** — Failure analysis and prompt REMOVE/ADD recommendations.
-4. **Dashboard export** — CSV tables under `workspace/powerbi_export/csv/`.
+4. **Dashboard export** — CSV tables used by the Streamlit dashboard.
 5. **McNemar** — Paired statistical comparison between two runs.
 
 ---
@@ -40,10 +39,10 @@ Entry file: `streamlit_app.py`
 
 ## Quick start — hosted Eval Agent
 
-1. Open Streamlit URL.
-2. **Eval Agent** → **Run evaluation**.
-3. **Save to GitHub repo** when done.
-4. **Dashboard** → view results.
+1. Open https://afw-chatbot-eval-agent.streamlit.app/Eval_Agent
+2. **Run evaluation** → configure and start
+3. **Save results** when done
+4. Open https://afw-chatbot-eval-agent.streamlit.app to view results
 
 ---
 
@@ -53,14 +52,14 @@ Entry file: `streamlit_app.py`
 python run_eval_agent.py
 ```
 
-Menu: `1` = eval, `2` = McNemar, `10` = refresh export.
+Menu: `1` = eval, `2` = McNemar, `10` = refresh dashboard export.
 
 ---
 
 ## Endpoints
 
 | Arm | URL |
-|-----|-----|
+|-----|----------|
 | OpenAI | https://angel-flight-chatbot-app.azurewebsites.net |
 | Claude | https://angel-flight-chatbot-claude.azurewebsites.net |
 
@@ -88,7 +87,7 @@ Menu: `1` = eval, `2` = McNemar, `10` = refresh export.
 | 2 | insufficient_information |
 | 3 | manual_review |
 
-Dashboard displays **Title Case** labels (e.g. Insufficient Information). Use **Truth** (not Gold) in UI.
+Dashboard displays **Title Case** labels. Use **Truth** (not Gold) in UI.
 
 ---
 
@@ -105,17 +104,9 @@ workspace/
   datasets/           Excel persona workbooks
   runs/               Per-eval outputs + manifest.json
   comparisons/        McNemar JSON/XLSX/MD
-  powerbi_export/     Dashboard CSV + Excel export
+  powerbi_export/csv/ Dashboard CSV tables
   deliverables/       Optional comparison deliverables
 ```
-
----
-
-## Push to GitHub
-
-Hosted: **Save to GitHub repo** button in Eval Agent (needs Streamlit `GITHUB_TOKEN`).
-
-Local: `python push_streamlit_dashboard.py`
 
 ---
 
