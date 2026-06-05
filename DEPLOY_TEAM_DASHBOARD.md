@@ -10,7 +10,7 @@ The recommended path is **Streamlit Community Cloud** (free). It reads CSV expor
 
 | Item | How they access it |
 |------|-------------------|
-| **Live dashboard** | Public Streamlit URL (e.g. `https://afw-eval-dashboard.streamlit.app`) |
+| **Live dashboard** | https://afw-chatbot-eval.streamlit.app |
 | **Eval agent + data** | GitHub repo `shprasa/afw-chatbot-eval-agent` (add them as collaborators) |
 | **Updates** | Automatic — agent exports CSVs → dashboard refreshes within ~20 seconds |
 
@@ -72,9 +72,18 @@ They do **not** need Power BI or your laptop running. The dashboard pulls from G
 
 ---
 
-## Optional — run locally with GitHub live mode
+## Optional — run in GitHub Codespace
 
-If a teammate prefers a local copy:
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py --server.enableCORS false --server.enableXsrfProtection false
+```
+
+Or: `bash run_dashboard.sh`
+
+The Codespace auto-detects `workspace/powerbi_export/csv` in the cloned repo (no token needed). Open the forwarded port in the **Ports** tab.
+
+## Optional — run locally with GitHub live mode
 
 ```cmd
 pip install -r requirements.txt
