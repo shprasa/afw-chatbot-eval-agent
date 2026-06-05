@@ -7,6 +7,16 @@ from typing import Any
 
 import pandas as pd
 
+TEMPLATE_SHEET_NAMES = ("test_cases", "120_test_cases")
+
+TEMPLATE_STRICT_NOTICE = """
+STRICT TEMPLATE REQUIRED
+Your Excel file must follow the exact column layout in:
+  workspace/templates/AFW_Eval_Test_Cases_Template.xlsx
+Sheet name must be: test_cases (or legacy 120_test_cases).
+Do not rename columns. Uploads that fail validation cannot be used.
+""".strip()
+
 REQUIRED_COLUMNS = ("persona_id", "simulated_user_message", "ix. final eligibility outcome")
 USER_INPUT_COLS = [
     f"{roman}. user input message"
@@ -39,7 +49,14 @@ README_ROWS: list[dict[str, str]] = [
     },
     {
         "topic": "Sheet name",
-        "detail": "Keep test cases on sheet named: test_cases (or 120_test_cases for legacy).",
+        "detail": "Must be exactly: test_cases (or legacy 120_test_cases). No other sheet names.",
+    },
+    {
+        "topic": "Strict template",
+        "detail": (
+            "Column names and order must match this template exactly. "
+            "Custom uploads that deviate will be rejected by the agent."
+        ),
     },
     {
         "topic": "persona_id",
