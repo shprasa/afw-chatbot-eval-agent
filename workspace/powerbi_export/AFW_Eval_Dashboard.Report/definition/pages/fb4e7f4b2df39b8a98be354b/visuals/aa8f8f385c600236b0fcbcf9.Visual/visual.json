@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "aa8f8f385c600236b0fcbcf9",
+  "position": {
+    "x": 280,
+    "y": 24,
+    "z": 0,
+    "height": 110,
+    "width": 420,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Display Name"
+                }
+              },
+              "queryRef": "Turn Details.Display Name",
+              "nativeQueryRef": "Display Name",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
