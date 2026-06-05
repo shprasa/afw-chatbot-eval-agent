@@ -1,0 +1,19 @@
+# Secrets — never commit
+github_publish_config.txt
+*.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Transient scratch only (per-run copies are under workspace/runs/)
+workspace/_local_artifacts/
+workspace/_local_reports/
+workspace/.eval_agent_config.json
+
+# Publish staging
+_github_publish_staging/
+
+.DS_Store
+Thumbs.db

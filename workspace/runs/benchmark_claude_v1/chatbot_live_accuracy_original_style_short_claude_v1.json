@@ -1,0 +1,108 @@
+{
+  "encoding_note": "truth/pred use 1=eligible, 0=ineligible; chatbot insufficient_information/manual_review turns are skip (not 0)",
+  "by_workbook_binary": {
+    "original_style_short_f_claude_v1": {
+      "n": 120,
+      "n_scored": 120,
+      "correct": 80,
+      "accuracy": 0.6666666666666666
+    }
+  },
+  "n_personas": 120,
+  "n_scored": 120,
+  "correct": 80,
+  "final_outcome_accuracy": 0.6666666666666666,
+  "by_truth_class": {
+    "is_eligible": {
+      "n_in_class": 30,
+      "correct": 21,
+      "recall": 0.7
+    },
+    "is_ineligible": {
+      "n_in_class": 30,
+      "correct": 20,
+      "recall": 0.6666666666666666
+    },
+    "is_manual_review": {
+      "n_in_class": 30,
+      "correct": 14,
+      "recall": 0.4666666666666667
+    },
+    "is_insufficient_information": {
+      "n_in_class": 30,
+      "correct": 25,
+      "recall": 0.8333333333333334
+    }
+  },
+  "by_dummy_column_accuracy": {
+    "is_eligible": {
+      "n": 120,
+      "accuracy": 0.9
+    },
+    "is_ineligible": {
+      "n": 120,
+      "accuracy": 0.8416666666666667
+    },
+    "is_manual_review": {
+      "n": 120,
+      "accuracy": 0.7916666666666666
+    },
+    "is_insufficient_information": {
+      "n": 120,
+      "accuracy": 0.8
+    }
+  },
+  "by_workbook": {
+    "original_style_short_f_claude_v1": {
+      "n": 120,
+      "n_scored": 120,
+      "correct": 80,
+      "accuracy": 0.6666666666666666
+    }
+  },
+  "by_question": {
+    "q1": {
+      "n": 120,
+      "correct": 35,
+      "accuracy": 0.2916666666666667
+    },
+    "q2": {
+      "n": 120,
+      "correct": 30,
+      "accuracy": 0.25
+    },
+    "q3": {
+      "n": 120,
+      "correct": 35,
+      "accuracy": 0.2916666666666667
+    },
+    "q4": {
+      "n": 120,
+      "correct": 35,
+      "accuracy": 0.2916666666666667
+    },
+    "q5": {
+      "n": 120,
+      "correct": 32,
+      "accuracy": 0.26666666666666666
+    },
+    "q6": {
+      "n": 120,
+      "correct": 35,
+      "accuracy": 0.2916666666666667
+    },
+    "q7": {
+      "n": 120,
+      "correct": 47,
+      "accuracy": 0.39166666666666666
+    },
+    "q8": {
+      "n": 120,
+      "correct": 50,
+      "accuracy": 0.4166666666666667
+    }
+  },
+  "question_level_total": 960,
+  "question_level_correct": 299,
+  "question_level_accuracy": 0.31145833333333334
+}

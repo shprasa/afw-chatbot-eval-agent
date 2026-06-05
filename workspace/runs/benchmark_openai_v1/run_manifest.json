@@ -1,0 +1,24 @@
+{
+  "run_id": "benchmark_openai_v1",
+  "run_label": "openai_v1",
+  "display_name": "OpenAI v1 | System Prompt v1 | 120 personas",
+  "model_key": "openai",
+  "model_display": "OpenAI (angel-flight-chatbot-app)",
+  "api_base_url": "https://angel-flight-chatbot-app.azurewebsites.net",
+  "prompt_key": "v1",
+  "prompt_label": "System Prompt v1",
+  "prompt_file": "prompts/prompt_extract_v1.txt",
+  "dataset_xlsx": "data/AFW_120_User_Test_Cases_Original_Style_Short.xlsx",
+  "dataset_sheet": "120_test_cases",
+  "output_suffix": "_original_style_short_openai",
+  "created_utc": "2026-06-05T01:16:59.957723+00:00",
+  "artifacts": {
+    "chatbot_live_predictions": "workspace/runs/benchmark_openai_v1/chatbot_live_predictions_original_style_short_openai.csv",
+    "chatbot_live_transcripts": "workspace/runs/benchmark_openai_v1/chatbot_live_transcripts_original_style_short_openai.jsonl",
+    "accuracy": "workspace/runs/benchmark_openai_v1/chatbot_live_accuracy_original_style_short_openai.json",
+    "failure_analysis": "workspace/runs/benchmark_openai_v1/chatbot_live_failure_analysis_original_style_short_openai.md",
+    "prompt_improvements": "workspace/runs/benchmark_openai_v1/chatbot_live_prompt_improvements_original_style_short_openai.md"
+  },
+  "predictions_csv": "workspace/runs/benchmark_openai_v1/chatbot_live_predictions_original_style_short_openai.csv",
+  "seeded": true
+}

@@ -1,0 +1,24 @@
+{
+  "run_id": "benchmark_claude_v10",
+  "run_label": "claude_v10",
+  "display_name": "Claude v10 | System Prompt v10 | 120 personas",
+  "model_key": "claude",
+  "model_display": "Claude (angel-flight-chatbot-claude)",
+  "api_base_url": "https://angel-flight-chatbot-claude.azurewebsites.net",
+  "prompt_key": "v10",
+  "prompt_label": "System Prompt v10",
+  "prompt_file": "prompts/prompt_extract_v10.txt",
+  "dataset_xlsx": "data/AFW_120_User_Test_Cases_Original_Style_Short.xlsx",
+  "dataset_sheet": "120_test_cases",
+  "output_suffix": "_original_style_short_claude",
+  "created_utc": "2026-06-05T01:17:00.055308+00:00",
+  "artifacts": {
+    "chatbot_live_predictions": "workspace/runs/benchmark_claude_v10/chatbot_live_predictions_original_style_short_claude.csv",
+    "chatbot_live_transcripts": "workspace/runs/benchmark_claude_v10/chatbot_live_transcripts_original_style_short_claude.jsonl",
+    "accuracy": "workspace/runs/benchmark_claude_v10/chatbot_live_accuracy_original_style_short_claude.json",
+    "failure_analysis": "workspace/runs/benchmark_claude_v10/chatbot_live_failure_analysis_original_style_short_claude.md",
+    "prompt_improvements": "workspace/runs/benchmark_claude_v10/chatbot_live_prompt_improvements_original_style_short_claude.md"
+  },
+  "predictions_csv": "workspace/runs/benchmark_claude_v10/chatbot_live_predictions_original_style_short_claude.csv",
+  "seeded": true
+}
