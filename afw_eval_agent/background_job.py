@@ -47,6 +47,10 @@ def job_log_path(ws: Workspace, owner_email: str) -> Path:
     return job_dir(ws, owner_email) / "active_job.log"
 
 
+def job_history_path(ws: Workspace, owner_email: str) -> Path:
+    return job_dir(ws, owner_email) / "history.jsonl"
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -163,13 +167,24 @@ def cancel_job(ws: Workspace, owner_email: str) -> None:
     state["status"] = "cancelled"
     state["pid"] = None
     save_job_state(ws, email, state)
+    _finalize_job(ws, email, state)
 
 
 def clear_job(ws: Workspace, owner_email: str) -> None:
     email = normalize_owner_email(owner_email)
+    state = load_job_state(ws, email)
+    if state and state.get("status") in {"completed", "failed", "cancelled"}:
+        append_job_history(ws, email, state)
     for path in (job_state_path(ws, email), job_log_path(ws, email)):
         if path.is_file():
             path.unlink()
+
+
+def _finalize_job(ws: Workspace, email: str, state: dict[str, Any]) -> None:
+    if state.get("status") in {"completed", "failed", "cancelled"} and not state.get("history_archived"):
+        append_job_history(ws, email, state)
+        state["history_archived"] = True
+        save_job_state(ws, email, state)
 
 
 def start_background_evaluation(
@@ -339,6 +354,7 @@ def execute_job(workspace_root: Path | None = None) -> int:
         )
         state["email_status"] = msg if ok else f"Failed: {msg}"
         save_job_state(ws, email, state)
+        _finalize_job(ws, email, state)
         return 0
     except Exception as exc:
         cancelled = "cancel" in str(exc).lower()
@@ -354,6 +370,7 @@ def execute_job(workspace_root: Path | None = None) -> int:
             )
             state["email_status"] = msg if ok else f"Failed: {msg}"
             save_job_state(ws, email, state)
+        _finalize_job(ws, email, state)
         return 1
 
 
