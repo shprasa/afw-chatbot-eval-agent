@@ -1,4 +1,4 @@
-# AFW Chatbot Evaluation Agent — Handoff Package
+# AFW Screening Chatbot Evaluation Agent — Technical Reference
 
 Angel Flight West (AFW) live evaluation agent for screening chatbot accuracy.
 Built for the UC Davis Graduate School of Management MSBA Angel Flight West Demand Management practicum.
@@ -21,7 +21,7 @@ Built for the UC Davis Graduate School of Management MSBA Angel Flight West Dema
 pip install -r requirements.txt
 ```
 
-## Quick start — plug-and-play agent (recommended)
+## Quick start — interactive agent (recommended)
 
 ```powershell
 cd <handoff_folder>
@@ -118,7 +118,7 @@ Never sent: `engineered_for`, manual labels, `engineered_for` rationale fields.
 ```
 AFW_Eval_Agent_Handoff/
   README_HANDOFF.md          (this file)
-  AFW_Eval_Agent_README.md   plug-and-play team guide
+  AFW_Eval_Agent_README.md   quick reference guide
   requirements.txt
   run_eval_agent.py          interactive wizard entry point
   Run_Eval_Agent.bat         double-click launcher (Windows)
