@@ -1,0 +1,122 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "9c81e26951aa00eab2409220",
+  "position": {
+    "x": 24,
+    "y": 150,
+    "z": 0,
+    "height": 540,
+    "width": 1232,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Display Name"
+                }
+              },
+              "queryRef": "Turn Details.Display Name",
+              "nativeQueryRef": "Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Persona ID"
+                }
+              },
+              "queryRef": "Turn Details.Persona ID",
+              "nativeQueryRef": "Persona ID"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Turn Number"
+                }
+              },
+              "queryRef": "Turn Details.Turn Number",
+              "nativeQueryRef": "Turn Number"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Question"
+                }
+              },
+              "queryRef": "Turn Details.Question",
+              "nativeQueryRef": "Question"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "User Message"
+                }
+              },
+              "queryRef": "Turn Details.User Message",
+              "nativeQueryRef": "User Message"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Assistant Response"
+                }
+              },
+              "queryRef": "Turn Details.Assistant Response",
+              "nativeQueryRef": "Assistant Response"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Turn Details"
+                    }
+                  },
+                  "Property": "Checkpoint Correct"
+                }
+              },
+              "queryRef": "Turn Details.Checkpoint Correct",
+              "nativeQueryRef": "Checkpoint Correct"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
