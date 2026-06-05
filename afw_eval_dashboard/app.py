@@ -38,7 +38,6 @@ from afw_eval_dashboard.theme import (
     CHART_HEIGHT,
     CHART_HEIGHT_TALL,
     OUTCOME_COLORS,
-    brand_header,
     chart_layout,
     hero,
     inject_css,
