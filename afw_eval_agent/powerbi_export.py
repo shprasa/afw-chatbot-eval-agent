@@ -392,8 +392,27 @@ def export_powerbi_data(workspace: Workspace | None = None) -> Path:
 
     for name, df in sheets:
         safe = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
-        if df is not None and not df.empty:
-            df.to_csv(csv_dir / f"{safe}.csv", index=False, encoding="utf-8-sig")
+        if df is None:
+            continue
+        if df.empty and name != "McNemar Comparisons":
+            continue
+        if df.empty and name == "McNemar Comparisons":
+            df = pd.DataFrame(
+                columns=[
+                    "Comparison File",
+                    "Group A",
+                    "Group B",
+                    "Paired Personas",
+                    "Accuracy A Pct",
+                    "Accuracy B Pct",
+                    "Ate Percentage Points",
+                    "A Only Correct",
+                    "B Only Correct",
+                    "Mcnemar P Value",
+                    "Significant At 0 05",
+                ]
+            )
+        df.to_csv(csv_dir / f"{safe}.csv", index=False, encoding="utf-8-sig")
 
     try:
         xlsx_rel = str(xlsx_path.resolve().relative_to(AGENT_ROOT.resolve())).replace("\\", "/")
@@ -413,6 +432,20 @@ def export_powerbi_data(workspace: Workspace | None = None) -> Path:
 
 def _write_setup_guide(out_dir: Path) -> None:
     guide = """# Power BI — Connect to GitHub Data (Auto-Refresh)
+
+## Pre-built dashboard (fastest start)
+
+```
+workspace/powerbi_export/
+  AFW_Eval_Dashboard.pbip          ← double-click to open
+  Open_AFW_Dashboard.bat           ← rebuild + open (Windows)
+  DASHBOARD_README.md
+```
+
+Build or rebuild: `python build_afw_powerbi_dashboard.py`  
+After new eval runs: Power BI Desktop → **Home → Refresh**
+
+---
 
 ## Where the data lives in this repo
 
