@@ -122,6 +122,7 @@ AFW_Eval_Agent_Handoff/
   requirements.txt
   run_eval_agent.py          interactive wizard entry point
   Run_Eval_Agent.bat         double-click launcher (Windows)
+  config/agent_registry.json saved model hosts and prompt labels
   afw_eval_agent/            wizard, template, McNemar, workspace
   chatbot_live_eval.py       core agent (run from package root)
   rewrite_powerbi_exports.py
@@ -137,5 +138,5 @@ AFW_Eval_Agent_Handoff/
 
 ## Contact / lineage
 
-UC Davis Graduate School of Management MSBA — Angel Flight West Demand Management practicum.
+UC Davis Graduate School of Management MSBA Demand Management Practicum Team (2025–2026).
 Primary module: `chatbot_live_eval.py` (package root).
