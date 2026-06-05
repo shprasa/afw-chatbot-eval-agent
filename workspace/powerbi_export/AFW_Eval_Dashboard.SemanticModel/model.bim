@@ -1,0 +1,1498 @@
+{
+  "name": "AFW_Eval_Dashboard",
+  "compatibilityLevel": 1567,
+  "model": {
+    "culture": "en-US",
+    "dataAccessOptions": {
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "sourceQueryCulture": "en-US",
+    "tables": [
+      {
+        "name": "Evaluation Runs",
+        "columns": [
+          {
+            "name": "Run ID",
+            "dataType": "string",
+            "sourceColumn": "Run ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Run Label",
+            "dataType": "string",
+            "sourceColumn": "Run Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Display Name",
+            "dataType": "string",
+            "sourceColumn": "Display Name",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Model Display",
+            "dataType": "string",
+            "sourceColumn": "Model Display",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Prompt Label",
+            "dataType": "string",
+            "sourceColumn": "Prompt Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "API Base URL",
+            "dataType": "string",
+            "sourceColumn": "API Base URL",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Dataset File",
+            "dataType": "string",
+            "sourceColumn": "Dataset File",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Dataset Sheet",
+            "dataType": "string",
+            "sourceColumn": "Dataset Sheet",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Created UTC",
+            "dataType": "string",
+            "sourceColumn": "Created UTC",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Persona Count",
+            "dataType": "double",
+            "sourceColumn": "Persona Count",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Correct Count",
+            "dataType": "double",
+            "sourceColumn": "Correct Count",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Accuracy Pct",
+            "dataType": "double",
+            "sourceColumn": "Accuracy Pct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Evaluation Runs",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\Evaluation_Runs.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "Persona Results",
+        "columns": [
+          {
+            "name": "Run ID",
+            "dataType": "string",
+            "sourceColumn": "Run ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Run Label",
+            "dataType": "string",
+            "sourceColumn": "Run Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Display Name",
+            "dataType": "string",
+            "sourceColumn": "Display Name",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Model Display",
+            "dataType": "string",
+            "sourceColumn": "Model Display",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Prompt Label",
+            "dataType": "string",
+            "sourceColumn": "Prompt Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Persona ID",
+            "dataType": "string",
+            "sourceColumn": "Persona ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Session ID",
+            "dataType": "string",
+            "sourceColumn": "Session ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Truth Label",
+            "dataType": "string",
+            "sourceColumn": "Truth Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Label",
+            "dataType": "string",
+            "sourceColumn": "Predicted Label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Correct Match",
+            "dataType": "double",
+            "sourceColumn": "Correct Match",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Truth Is Eligible",
+            "dataType": "double",
+            "sourceColumn": "Truth Is Eligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Truth Is Ineligible",
+            "dataType": "double",
+            "sourceColumn": "Truth Is Ineligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Truth Is Manual Review",
+            "dataType": "double",
+            "sourceColumn": "Truth Is Manual Review",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Truth Is Insufficient Information",
+            "dataType": "double",
+            "sourceColumn": "Truth Is Insufficient Information",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Is Eligible",
+            "dataType": "double",
+            "sourceColumn": "Predicted Is Eligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Is Ineligible",
+            "dataType": "double",
+            "sourceColumn": "Predicted Is Ineligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Is Manual Review",
+            "dataType": "double",
+            "sourceColumn": "Predicted Is Manual Review",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Is Insufficient Information",
+            "dataType": "double",
+            "sourceColumn": "Predicted Is Insufficient Information",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Error",
+            "dataType": "string",
+            "sourceColumn": "Error",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Persona Results",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\Persona_Results.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "Turn Details",
+        "columns": [
+          {
+            "name": "Run ID",
+            "dataType": "string",
+            "sourceColumn": "Run ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Display Name",
+            "dataType": "string",
+            "sourceColumn": "Display Name",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Persona ID",
+            "dataType": "string",
+            "sourceColumn": "Persona ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Turn Number",
+            "dataType": "double",
+            "sourceColumn": "Turn Number",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Question",
+            "dataType": "string",
+            "sourceColumn": "Question",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "User Message",
+            "dataType": "string",
+            "sourceColumn": "User Message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Assistant Response",
+            "dataType": "string",
+            "sourceColumn": "Assistant Response",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Predicted Outcome",
+            "dataType": "string",
+            "sourceColumn": "Predicted Outcome",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Session Eligibility Outcome",
+            "dataType": "string",
+            "sourceColumn": "Session Eligibility Outcome",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Checkpoint Correct",
+            "dataType": "double",
+            "sourceColumn": "Checkpoint Correct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Turn Details",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\Turn_Details.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "Run Summary By Class",
+        "columns": [
+          {
+            "name": "Run ID",
+            "dataType": "string",
+            "sourceColumn": "Run ID",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Display Name",
+            "dataType": "string",
+            "sourceColumn": "Display Name",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Outcome Class",
+            "dataType": "string",
+            "sourceColumn": "Outcome Class",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Personas In Class",
+            "dataType": "double",
+            "sourceColumn": "Personas In Class",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Correct In Class",
+            "dataType": "double",
+            "sourceColumn": "Correct In Class",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Recall Pct",
+            "dataType": "double",
+            "sourceColumn": "Recall Pct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Run Summary By Class",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\Run_Summary_By_Class.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "User Test Cases",
+        "columns": [
+          {
+            "name": "Source Dataset File",
+            "dataType": "string",
+            "sourceColumn": "Source Dataset File",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Source Sheet Name",
+            "dataType": "string",
+            "sourceColumn": "Source Sheet Name",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "persona_id",
+            "dataType": "string",
+            "sourceColumn": "persona_id",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "engineered_for",
+            "dataType": "string",
+            "sourceColumn": "engineered_for",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "simulated_user_message",
+            "dataType": "string",
+            "sourceColumn": "simulated_user_message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "i. travel reason",
+            "dataType": "string",
+            "sourceColumn": "i. travel reason",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "i. user input message",
+            "dataType": "string",
+            "sourceColumn": "i. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "i. manual label",
+            "dataType": "string",
+            "sourceColumn": "i. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ii. domestic violence context",
+            "dataType": "string",
+            "sourceColumn": "ii. domestic violence context",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ii. user input message",
+            "dataType": "string",
+            "sourceColumn": "ii. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ii. manual label",
+            "dataType": "string",
+            "sourceColumn": "ii. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iii. geography & distance",
+            "dataType": "string",
+            "sourceColumn": "iii. geography & distance",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iii. user input message",
+            "dataType": "string",
+            "sourceColumn": "iii. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iii. manual label",
+            "dataType": "string",
+            "sourceColumn": "iii. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iv. timeline",
+            "dataType": "string",
+            "sourceColumn": "iv. timeline",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iv. user input message",
+            "dataType": "string",
+            "sourceColumn": "iv. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "iv. manual label",
+            "dataType": "string",
+            "sourceColumn": "iv. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "v. mobility",
+            "dataType": "string",
+            "sourceColumn": "v. mobility",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "v. user input message",
+            "dataType": "string",
+            "sourceColumn": "v. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "v. manual label",
+            "dataType": "string",
+            "sourceColumn": "v. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vi. medical stability",
+            "dataType": "string",
+            "sourceColumn": "vi. medical stability",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vi. user input message",
+            "dataType": "string",
+            "sourceColumn": "vi. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vi. manual label",
+            "dataType": "string",
+            "sourceColumn": "vi. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vii. companions",
+            "dataType": "string",
+            "sourceColumn": "vii. companions",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vii. user input message",
+            "dataType": "string",
+            "sourceColumn": "vii. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vii. manual label",
+            "dataType": "string",
+            "sourceColumn": "vii. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "viii. financial or compelling need",
+            "dataType": "string",
+            "sourceColumn": "viii. financial or compelling need",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "viii. user input message",
+            "dataType": "string",
+            "sourceColumn": "viii. user input message",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "viii. manual label",
+            "dataType": "string",
+            "sourceColumn": "viii. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ix. final eligibility outcome",
+            "dataType": "string",
+            "sourceColumn": "ix. final eligibility outcome",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ix. manual label",
+            "dataType": "string",
+            "sourceColumn": "ix. manual label",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "labeler notes",
+            "dataType": "string",
+            "sourceColumn": "labeler notes",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "truth_is_eligible",
+            "dataType": "double",
+            "sourceColumn": "truth_is_eligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "truth_is_ineligible",
+            "dataType": "double",
+            "sourceColumn": "truth_is_ineligible",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "truth_is_manual_review",
+            "dataType": "double",
+            "sourceColumn": "truth_is_manual_review",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "truth_is_insufficient_information",
+            "dataType": "double",
+            "sourceColumn": "truth_is_insufficient_information",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "I. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "I. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "II. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "II. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "III. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "III. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "IV. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "IV. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "V. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "V. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "VI. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "VI. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "VII. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "VII. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "VIII. Manual Label Code",
+            "dataType": "double",
+            "sourceColumn": "VIII. Manual Label Code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "engineered_for_code",
+            "dataType": "double",
+            "sourceColumn": "engineered_for_code",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "User Test Cases",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\User_Test_Cases.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "McNemar Comparisons",
+        "columns": [
+          {
+            "name": "Comparison File",
+            "dataType": "string",
+            "sourceColumn": "Comparison File",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Group A",
+            "dataType": "string",
+            "sourceColumn": "Group A",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Group B",
+            "dataType": "string",
+            "sourceColumn": "Group B",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Paired Personas",
+            "dataType": "double",
+            "sourceColumn": "Paired Personas",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Accuracy A Pct",
+            "dataType": "double",
+            "sourceColumn": "Accuracy A Pct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Accuracy B Pct",
+            "dataType": "double",
+            "sourceColumn": "Accuracy B Pct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Ate Percentage Points",
+            "dataType": "double",
+            "sourceColumn": "Ate Percentage Points",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "A Only Correct",
+            "dataType": "double",
+            "sourceColumn": "A Only Correct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "B Only Correct",
+            "dataType": "double",
+            "sourceColumn": "B Only Correct",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Mcnemar P Value",
+            "dataType": "double",
+            "sourceColumn": "Mcnemar P Value",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Significant At 0 05",
+            "dataType": "double",
+            "sourceColumn": "Significant At 0 05",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "McNemar Comparisons",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\prasa\\\\OneDrive\\\\Desktop\\\\AFW_Eval_Agent_Handoff\\\\workspace\\\\powerbi_export\\\\csv\\\\McNemar_Comparisons.csv\"),[Delimiter=\",\", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true])",
+                "in",
+                "    #\"Promoted Headers\""
+              ]
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "PBI_ResultType",
+            "value": "Table"
+          }
+        ]
+      },
+      {
+        "name": "_Metrics",
+        "columns": [
+          {
+            "name": "Placeholder",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Placeholder"
+          }
+        ],
+        "measures": [
+          {
+            "name": "Avg Accuracy Pct",
+            "expression": "AVERAGE('Evaluation Runs'[Accuracy Pct])",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Total Runs",
+            "expression": "COUNTROWS('Evaluation Runs')",
+            "formatString": "0"
+          },
+          {
+            "name": "Persona Correct Rate",
+            "expression": "DIVIDE(COUNTROWS(FILTER('Persona Results', 'Persona Results'[Correct Match] = 1)),COUNTROWS('Persona Results'))",
+            "formatString": "0.0%;-0.0%;0.0%"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "_Metrics",
+            "mode": "import",
+            "source": {
+              "type": "calculated",
+              "expression": "DATATABLE(\"Placeholder\", STRING, {{\" \"}})"
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "95fd0743-4e97-415d-982a-3f074f01a614",
+        "fromTable": "Persona Results",
+        "fromColumn": "Run ID",
+        "toTable": "Evaluation Runs",
+        "toColumn": "Run ID"
+      },
+      {
+        "name": "51cb87f6-43be-4598-b300-ed90d81d30bc",
+        "fromTable": "Persona Results",
+        "fromColumn": "Persona ID",
+        "toTable": "User Test Cases",
+        "toColumn": "persona_id"
+      },
+      {
+        "name": "1c40a19b-36be-4f9c-b2fd-7b90d3208d97",
+        "fromTable": "Turn Details",
+        "fromColumn": "Run ID",
+        "toTable": "Evaluation Runs",
+        "toColumn": "Run ID"
+      },
+      {
+        "name": "b69176d9-581f-4373-955f-16f0a89a3f6b",
+        "fromTable": "Turn Details",
+        "fromColumn": "Persona ID",
+        "toTable": "User Test Cases",
+        "toColumn": "persona_id"
+      },
+      {
+        "name": "f230ab20-9540-4d78-8ebe-6b003468dfb3",
+        "fromTable": "Run Summary By Class",
+        "fromColumn": "Run ID",
+        "toTable": "Evaluation Runs",
+        "toColumn": "Run ID"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "PBI_QueryOrder",
+        "value": "[\"Evaluation Runs\", \"Persona Results\", \"Turn Details\", \"Run Summary By Class\", \"User Test Cases\", \"McNemar Comparisons\"]"
+      },
+      {
+        "name": "__PBI_TimeIntelligenceEnabled",
+        "value": "0"
+      }
+    ]
+  }
+}
