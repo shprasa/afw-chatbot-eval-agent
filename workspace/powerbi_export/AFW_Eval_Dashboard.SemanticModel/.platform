@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "AFW_Eval_Dashboard"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c6e1a857-a18d-417f-ad5e-4fd2d74bf92e"
+  }
+}
