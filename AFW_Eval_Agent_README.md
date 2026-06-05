@@ -1,14 +1,10 @@
 # AFW Eval Agent — Quick pointer
 
-**External team:** start with **[EXTERNAL_TEAM_GUIDE.md](EXTERNAL_TEAM_GUIDE.md)** (full step-by-step).
+**AFW team:** start with **[AFW_TEAM_GUIDE.md](AFW_TEAM_GUIDE.md)** (full step-by-step).
 
-**Hosted app:** open your Streamlit URL → **Eval Agent** to run tests, **Dashboard** to view results.
-
-**CLI (optional):**
-
-```cmd
-pip install -r requirements.txt
-python run_eval_agent.py
-```
+| Tool | Link |
+|------|------|
+| **Eval Agent** | https://afw-chatbot-eval-agent.streamlit.app/Eval_Agent |
+| **Dashboard** | https://afw-chatbot-eval-agent.streamlit.app |
 
 See **README.md** for complete documentation.
