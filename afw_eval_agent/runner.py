@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import AGENT_ROOT, Workspace
-from .presets import MODEL_CHOICES, PROMPT_CHOICES
+from .registry import get_model, list_prompt_labels, resolve_prompt_reference_file
 
 
 def _safe_suffix(text: str) -> str:
@@ -25,8 +25,9 @@ def build_output_suffix(
     prompt_label: str,
     run_label: str,
 ) -> str:
+    known = list_prompt_labels().get(prompt_key, {}).get("label", "")
     parts = [_safe_suffix(run_label), model_key, prompt_key]
-    if prompt_label and prompt_label not in (PROMPT_CHOICES.get(prompt_key, {}).get("display", ""), prompt_key):
+    if prompt_label and prompt_label != known:
         parts.append(_safe_suffix(prompt_label))
     return "_" + "_".join(parts)
 
@@ -46,10 +47,10 @@ def build_env(
     parallel_workers: int = 6,
     turn_pause_s: float = 0.4,
 ) -> dict[str, str]:
-    model = MODEL_CHOICES[model_key]
+    model = get_model(model_key)
     env = os.environ.copy()
     env["CHATBOT_WEB_BASE_URL"] = model["base_url"]
-    env["CHATBOT_BACKEND"] = model["backend"]
+    env["CHATBOT_BACKEND"] = model.get("backend", "openai")
     env["CHATBOT_OUTPUT_SUFFIX"] = output_suffix
     env["CHATBOT_DATASET_XLSX"] = str(dataset_xlsx)
     env["CHATBOT_DATASET_SHEET"] = dataset_sheet
@@ -61,18 +62,10 @@ def build_env(
     if eval_limit is not None:
         env["CHATBOT_EVAL_LIMIT"] = str(eval_limit)
 
-    if prompt_file and prompt_file.is_file():
-        env["CHATBOT_SYSTEM_PROMPT_FILE"] = str(prompt_file)
-    elif prompt_key in PROMPT_CHOICES:
-        rel = PROMPT_CHOICES[prompt_key]["prompt_file"]
-        candidate = AGENT_ROOT / rel
-        if candidate.is_file():
-            env["CHATBOT_SYSTEM_PROMPT_FILE"] = str(candidate)
-        for alt in (AGENT_ROOT / "AFW_Eval_Agent_Handoff" / rel,):
-            if "CHATBOT_SYSTEM_PROMPT_FILE" not in env and alt.is_file():
-                env["CHATBOT_SYSTEM_PROMPT_FILE"] = str(alt)
+    ref = prompt_file or resolve_prompt_reference_file(prompt_key)
+    if ref and ref.is_file():
+        env["CHATBOT_SYSTEM_PROMPT_FILE"] = str(ref)
 
-    # Route artifacts into workspace scratch, then archive per run.
     env["CHATBOT_ARTIFACTS_DIR"] = str(workspace.local_artifacts)
     env["CHATBOT_REPORTS_DIR"] = str(workspace.local_reports)
     return env
@@ -123,8 +116,9 @@ def run_evaluation(
     if not script.is_file():
         raise FileNotFoundError(f"chatbot_live_eval.py not found at {script}")
 
-    print(f"\nRunning evaluation → {MODEL_CHOICES[model_key]['display']}")
-    print(f"  Prompt: {prompt_label}")
+    model = get_model(model_key)
+    print(f"\nRunning evaluation → {model['display']}")
+    print(f"  Prompt label: {prompt_label}")
     print(f"  Dataset: {dataset_xlsx.name} [{dataset_sheet}]")
     print(f"  Output suffix: {suffix}\n")
 
@@ -166,10 +160,10 @@ def run_evaluation(
     entry: dict[str, Any] = {
         "run_id": run_id,
         "run_label": run_label,
-        "display_name": f"{run_label} | {MODEL_CHOICES[model_key]['display']} | {prompt_label}",
+        "display_name": f"{run_label} | {model['display']} | {prompt_label}",
         "model_key": model_key,
-        "model_display": MODEL_CHOICES[model_key]["display"],
-        "api_base_url": MODEL_CHOICES[model_key]["base_url"],
+        "model_display": model["display"],
+        "api_base_url": model["base_url"],
         "prompt_key": prompt_key,
         "prompt_label": prompt_label,
         "prompt_file": _rel(env.get("CHATBOT_SYSTEM_PROMPT_FILE", "")),
@@ -197,7 +191,6 @@ def import_legacy_run(
     prompt_label: str = "legacy import",
     run_label: str = "legacy",
 ) -> dict[str, Any]:
-    """Register an existing predictions CSV so it can be used in McNemar."""
     predictions_csv = Path(predictions_csv)
     if not predictions_csv.is_file():
         raise FileNotFoundError(predictions_csv)
@@ -207,7 +200,7 @@ def import_legacy_run(
     run_dir.mkdir(parents=True, exist_ok=True)
     dest = run_dir / predictions_csv.name
     shutil.copy2(predictions_csv, dest)
-    model = MODEL_CHOICES.get(model_key, MODEL_CHOICES["openai"])
+    model = get_model(model_key)
     entry: dict[str, Any] = {
         "run_id": run_id,
         "run_label": run_label,
