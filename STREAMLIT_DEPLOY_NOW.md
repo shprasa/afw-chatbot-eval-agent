@@ -7,4 +7,6 @@
 
 You get **Dashboard** + **Eval Agent** in one URL. No local install needed.
 
+**Share with external team:** [EXTERNAL_TEAM_GUIDE.md](EXTERNAL_TEAM_GUIDE.md)
+
 After eval: **Eval Agent** → **Save to GitHub repo** → **Dashboard** refreshes.
