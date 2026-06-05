@@ -397,9 +397,11 @@ def main() -> None:
     if cloud and local_ok:
         use_github = "Local folder"
         st.sidebar.info("Streamlit Cloud — using data committed in this repo.")
-    elif cloud and gh_settings:
+    elif cloud:
         use_github = "GitHub (team live)"
-        st.sidebar.info("Streamlit Cloud — live data from GitHub API.")
+        st.sidebar.info(
+            f"Streamlit Cloud — live from github.com/{gh_settings['owner']}/{gh_settings['repo']}"
+        )
     elif codespace and local_ok:
         use_github = "Local folder"
         st.sidebar.info("Codespace — using `workspace/powerbi_export/csv` in this repo.")
@@ -473,8 +475,9 @@ def main() -> None:
     st.sidebar.markdown("---")
     if cloud:
         st.sidebar.markdown(
-            "**Repo:** github.com/shprasa/afw-chatbot-eval-agent (public)\n\n"
-            "Data refreshes every 20s after agent exports are pushed."
+            "**Data:** github.com/shprasa/afw-chatbot-eval-agent (public)\n\n"
+            "**URL:** https://afw-chatbot-eval.streamlit.app\n\n"
+            "Refreshes every 20s after `python push_streamlit_dashboard.py`."
         )
     elif codespace:
         st.sidebar.markdown(
