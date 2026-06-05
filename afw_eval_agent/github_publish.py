@@ -218,6 +218,8 @@ def publish_workspace(
         "afw_eval_dashboard/theme.py",
         "afw_eval_dashboard/mcnemar_loader.py",
         "afw_eval_agent_ui/app.py",
+        "afw_eval_agent/background_job.py",
+        "afw_eval_agent/notify.py",
         "streamlit_app.py",
     ):
         local = AGENT_ROOT / rel
