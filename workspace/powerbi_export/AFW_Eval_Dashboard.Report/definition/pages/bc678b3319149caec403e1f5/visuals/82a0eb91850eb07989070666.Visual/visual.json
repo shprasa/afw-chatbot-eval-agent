@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "82a0eb91850eb07989070666",
+  "position": {
+    "x": 616,
+    "y": 24,
+    "z": 0,
+    "height": 140,
+    "width": 280,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Metrics"
+                    }
+                  },
+                  "Property": "Persona Correct Rate"
+                }
+              },
+              "queryRef": "_Metrics.Persona Correct Rate",
+              "nativeQueryRef": "Persona Correct Rate"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
