@@ -19,8 +19,8 @@ from afw_eval_dashboard.github_loader import (
 DESK = Path(__file__).resolve().parent.parent
 CONFIG = DESK / "github_publish_config.txt"
 DATA_CANDIDATES = [
-    DESK / "AFW_Eval_Agent_Handoff" / "workspace" / "powerbi_export",
     DESK / "workspace" / "powerbi_export",
+    DESK / "AFW_Eval_Agent_Handoff" / "workspace" / "powerbi_export",
     DESK / "powerbi_export",
 ]
 
@@ -30,6 +30,18 @@ def _find_data_root() -> Path:
         if (p / "csv" / "Evaluation_Runs.csv").is_file():
             return p
     return DATA_CANDIDATES[0]
+
+
+def _has_local_export() -> bool:
+    return (_find_data_root() / "csv" / "Evaluation_Runs.csv").is_file()
+
+
+def _is_match(val) -> bool:
+    if val is True:
+        return True
+    if val is False or val is None or (isinstance(val, float) and pd.isna(val)):
+        return False
+    return str(val).strip().lower() in {"1", "true", "yes"}
 
 
 def _data_fingerprint(root: Path) -> str:
@@ -71,13 +83,16 @@ def load_tables_local(data_root: str, fingerprint: str) -> dict[str, pd.DataFram
 
 
 @st.cache_data(ttl=15)
-def load_tables_github(settings_key: str) -> dict[str, pd.DataFrame]:
+def load_tables_github(settings_key: str, use_config_file: bool) -> dict[str, pd.DataFrame]:
     secrets = None
     try:
         secrets = st.secrets
     except Exception:
         pass
-    settings = resolve_github_settings(secrets=secrets, config_path=CONFIG)
+    settings = resolve_github_settings(
+        secrets=secrets,
+        config_path=CONFIG if use_config_file else None,
+    )
     if not settings:
         return {"runs": pd.DataFrame()}
     return load_tables_from_github(settings)
@@ -169,7 +184,7 @@ def page_personas(personas: pd.DataFrame, runs: pd.DataFrame) -> None:
     df = personas if run_pick == "All runs" else personas[personas["Display Name"] == run_pick]
 
     c1, c2, c3 = st.columns(3)
-    correct = int(df["Correct Match"].sum()) if "Correct Match" in df.columns else 0
+    correct = int(df["Correct Match"].map(_is_match).sum()) if "Correct Match" in df.columns else 0
     total = len(df)
     c1.metric("Personas", total)
     c2.metric("Correct", correct)
@@ -321,8 +336,12 @@ def _run_script(script: Path) -> None:
         subprocess.run([sys.executable, str(script)], cwd=str(DESK), check=False)
 
 
-def _is_cloud_runtime() -> bool:
+def _is_streamlit_cloud() -> bool:
     return Path("/mount/src").exists() or bool(os.environ.get("STREAMLIT_SHARING_MODE"))
+
+
+def _is_codespace() -> bool:
+    return Path("/workspaces").exists() and bool(os.environ.get("CODESPACES"))
 
 
 def _team_password_ok() -> bool:
@@ -356,32 +375,48 @@ def main() -> None:
 
     _team_password_ok()
 
+    st.title("Angel Flight West — Eval Dashboard")
+    st.caption("UC Davis GSM MSBA · Screening chatbot evaluation · Live team view")
+
     st.sidebar.title("AFW Team Dashboard")
     st.sidebar.caption("UC Davis GSM MSBA · Angel Flight West Practicum")
 
-    cloud = _is_cloud_runtime()
+    cloud = _is_streamlit_cloud()
+    codespace = _is_codespace()
+    local_ok = _has_local_export()
+    secrets_obj = None
+    try:
+        secrets_obj = st.secrets
+    except Exception:
+        pass
     gh_settings = resolve_github_settings(
-        secrets=getattr(st, "secrets", None),
+        secrets=secrets_obj,
         config_path=None if cloud else CONFIG,
     )
 
-    if cloud or gh_settings:
+    if cloud:
         use_github = "GitHub (team live)"
-        if cloud:
-            st.sidebar.info("Cloud mode — reading live data from GitHub.")
-        else:
-            use_github = st.sidebar.radio(
-                "Data source",
-                ["GitHub (team live)", "Local folder"],
-                index=0,
-                help="GitHub mode pulls latest CSVs from the agent repo.",
-            )
+        st.sidebar.info("Streamlit Cloud — live data from GitHub.")
+    elif codespace and local_ok and not gh_settings:
+        use_github = "Local folder"
+        st.sidebar.info("Codespace — using `workspace/powerbi_export/csv` in this repo.")
+    elif gh_settings and local_ok:
+        use_github = st.sidebar.radio(
+            "Data source",
+            ["GitHub (team live)", "Local folder"],
+            index=0,
+            help="GitHub mode pulls latest CSVs from the agent repo.",
+        )
+    elif gh_settings:
+        use_github = "GitHub (team live)"
+    elif local_ok:
+        use_github = "Local folder"
     else:
         use_github = st.sidebar.radio(
             "Data source",
             ["GitHub (team live)", "Local folder"],
             index=1,
-            help="Add github_publish_config.txt or deploy to Streamlit Cloud.",
+            help="Set GITHUB_TOKEN env var or add workspace/powerbi_export/csv.",
         )
 
     live = st.sidebar.toggle("Auto-refresh (20s)", value=True)
@@ -395,10 +430,16 @@ def main() -> None:
                 "or github_publish_config.txt locally."
             )
             st.stop()
-        load_tables_github.clear()
         tables = load_tables_github(
-            f"{gh_settings['owner']}/{gh_settings['repo']}:{gh_settings['branch']}"
+            f"{gh_settings['owner']}/{gh_settings['repo']}:{gh_settings['branch']}",
+            use_config_file=not cloud,
         )
+        if tables["runs"].empty:
+            st.error(
+                "Could not load data from GitHub. Check Streamlit secrets: "
+                "`GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`."
+            )
+            st.stop()
         st.sidebar.success(f"Live from github.com/{gh_settings['owner']}/{gh_settings['repo']}")
     else:
         default_root = _find_data_root()
@@ -429,14 +470,17 @@ def main() -> None:
     st.sidebar.markdown("---")
     if cloud:
         st.sidebar.markdown(
-            "**Team workflow:** Anyone with this URL sees live eval results. "
+            "**Team URL:** https://afw-chatbot-eval.streamlit.app\n\n"
             "Data refreshes from GitHub every 20s after the agent exports."
+        )
+    elif codespace:
+        st.sidebar.markdown(
+            "**Codespace:** forward port 8501 from the Ports tab to open in browser."
         )
     else:
         st.sidebar.markdown(
             "**Local URL:** http://localhost:8502\n\n"
-            "For external team access, deploy to Streamlit Cloud — see "
-            "`DEPLOY_TEAM_DASHBOARD.md`."
+            "**Team URL:** https://afw-chatbot-eval.streamlit.app"
         )
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
