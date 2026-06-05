@@ -76,22 +76,42 @@ def load_config_from_file(config_path: Path) -> dict[str, str]:
     return values
 
 
+def _secret_lookup(secrets: Any, key: str) -> str:
+    """Read a secret from flat or [github] nested Streamlit / TOML layout."""
+    if secrets is None:
+        return ""
+    for source in (secrets,):
+        try:
+            nested = source["github"]
+            val = str(nested[key])
+            if val:
+                return val
+        except Exception:
+            pass
+        try:
+            val = str(source[key])
+            if val:
+                return val
+        except Exception:
+            pass
+        try:
+            val = str(getattr(source, key, ""))
+            if val:
+                return val
+        except Exception:
+            pass
+    return ""
+
+
 def resolve_github_settings(
     secrets: Any | None = None,
     config_path: Path | None = None,
 ) -> dict[str, str] | None:
     """Return {token, owner, repo, branch} from Streamlit secrets, env, or local config file."""
-    token = owner = repo = branch = ""
-
-    if secrets is not None:
-        try:
-            gh = secrets.get("github", secrets)
-            token = gh.get("GITHUB_TOKEN", "") or gh.get("token", "")
-            owner = gh.get("GITHUB_OWNER", "") or gh.get("owner", "")
-            repo = gh.get("GITHUB_REPO", "") or gh.get("repo", "")
-            branch = gh.get("GITHUB_BRANCH", "") or gh.get("branch", "main")
-        except Exception:
-            pass
+    token = _secret_lookup(secrets, "GITHUB_TOKEN") or _secret_lookup(secrets, "token")
+    owner = _secret_lookup(secrets, "GITHUB_OWNER") or _secret_lookup(secrets, "owner")
+    repo = _secret_lookup(secrets, "GITHUB_REPO") or _secret_lookup(secrets, "repo")
+    branch = _secret_lookup(secrets, "GITHUB_BRANCH") or _secret_lookup(secrets, "branch")
 
     token = token or os.environ.get("GITHUB_TOKEN", "")
     owner = owner or os.environ.get("GITHUB_OWNER", "")
