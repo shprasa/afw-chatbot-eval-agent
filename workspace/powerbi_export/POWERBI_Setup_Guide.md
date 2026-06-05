@@ -1,5 +1,19 @@
 # Power BI — Connect to GitHub Data (Auto-Refresh)
 
+## Pre-built dashboard (fastest start)
+
+```
+workspace/powerbi_export/
+  AFW_Eval_Dashboard.pbip          ← double-click to open
+  Open_AFW_Dashboard.bat           ← rebuild + open (Windows)
+  DASHBOARD_README.md
+```
+
+Build or rebuild: `python build_afw_powerbi_dashboard.py`  
+After new eval runs: Power BI Desktop → **Home → Refresh**
+
+---
+
 ## Where the data lives in this repo
 
 ```
