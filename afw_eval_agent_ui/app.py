@@ -11,7 +11,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from afw_eval_agent.config import AGENT_ROOT, Workspace, default_workspace
-from afw_eval_agent.github_publish import publish_workspace, resolve_credentials
+from afw_eval_agent.github_publish import publish_file, publish_workspace, repo_relative_path, resolve_credentials
+from afw_eval_agent.template import create_template
 from afw_eval_agent.mcnemar import compute_mcnemar, write_comparison_outputs
 from afw_eval_agent.powerbi_export import export_powerbi_data
 from afw_eval_agent.registry import add_model, add_prompt_label, list_models, list_prompt_labels
@@ -40,6 +41,33 @@ def _workspace() -> Workspace:
     return ws
 
 
+def _ensure_template(ws: Workspace) -> Path:
+    tpl = ws.templates / "AFW_Eval_Test_Cases_Template.xlsx"
+    if not tpl.is_file():
+        create_template(tpl)
+    return tpl
+
+
+def _list_datasets(ws: Workspace) -> list[Path]:
+    ws.datasets.mkdir(parents=True, exist_ok=True)
+    return sorted(ws.datasets.glob("*.xlsx"), key=lambda p: p.name.lower())
+
+
+def _save_dataset_upload(ws: Workspace, uploaded) -> Path:
+    dest = ws.datasets / uploaded.name
+    dest.write_bytes(uploaded.getvalue())
+    return dest
+
+
+def _push_dataset_to_repo(ws: Workspace, local: Path) -> bool:
+    return publish_file(
+        local,
+        repo_relative_path(ws, local),
+        message="Eval agent: upload persona workbook",
+        secrets=getattr(st, "secrets", None),
+    )
+
+
 def _save_to_github(ws: Workspace) -> None:
     creds = resolve_credentials(secrets=getattr(st, "secrets", None))
     if not creds:
@@ -62,7 +90,7 @@ def render_agent() -> None:
             st.markdown("### ✈️")
     with col_t:
         st.markdown(
-            f"<h2 style='color:{BRAND['navy']};margin:0'>AFW Screening Eval Agent</h2>"
+            f"<h2 style='color:{BRAND['navy']};margin:0'>AFW Screening Chatbot Evaluation Agent</h2>"
             f"<p style='color:{BRAND['muted_teal']}'>Angel Flight West · UC Davis GSM MSBA · Live hosted agent</p>",
             unsafe_allow_html=True,
         )
@@ -72,12 +100,59 @@ def render_agent() -> None:
 
     with tab_run:
         st.subheader("New evaluation run")
-        datasets = sorted(ws.datasets.glob("*.xlsx")) if ws.datasets.is_dir() else []
+        template_path = _ensure_template(ws)
+
+        st.markdown("**Persona workbook**")
+        dl_col, _ = st.columns([1, 2])
+        with dl_col:
+            st.download_button(
+                "Download template (.xlsx)",
+                data=template_path.read_bytes(),
+                file_name="AFW_Eval_Test_Cases_Template.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Required column layout for persona test cases",
+            )
+
+        uploaded_wb = st.file_uploader(
+            "Upload persona workbook (.xlsx)",
+            type=["xlsx"],
+            help="Must match the template column layout exactly.",
+        )
+        if uploaded_wb is not None and st.button("Save uploaded workbook", key="save_uploaded_wb"):
+            dest = _save_dataset_upload(ws, uploaded_wb)
+            sheet = detect_sheet(dest)
+            _, issues = validate_workbook(dest, sheet)
+            if issues:
+                st.error("Workbook validation failed: " + "; ".join(issues[:5]))
+            else:
+                if _push_dataset_to_repo(ws, dest):
+                    st.success(
+                        f"Saved **`{uploaded_wb.name}`** to the repo and selected it for your next run."
+                    )
+                else:
+                    st.success(
+                        f"Saved **`{uploaded_wb.name}`** locally. "
+                        "Click **Save to GitHub repo** to share it with the team."
+                    )
+                st.session_state["eval_dataset_pick"] = uploaded_wb.name
+                st.rerun()
+
+        datasets = _list_datasets(ws)
         if not datasets:
-            st.warning("No datasets in `workspace/datasets/`. Add an Excel workbook first.")
+            st.warning(
+                "No persona workbooks in `workspace/datasets/` yet. "
+                "Download the template, fill it in, and upload above."
+            )
         else:
             ds_names = [d.name for d in datasets]
-            ds_pick = st.selectbox("Persona workbook", ds_names)
+            pick_default = st.session_state.get("eval_dataset_pick")
+            pick_index = ds_names.index(pick_default) if pick_default in ds_names else 0
+            ds_pick = st.selectbox(
+                "Persona workbook",
+                ds_names,
+                index=pick_index,
+                key="eval_dataset_pick",
+            )
             dataset = ws.datasets / ds_pick
             sheet = detect_sheet(dataset)
             _, issues = validate_workbook(dataset, sheet)
