@@ -93,6 +93,49 @@ def read_job_log_tail(ws: Workspace, owner_email: str, max_lines: int = 150) -> 
     return "\n".join(lines[-max_lines:])
 
 
+def append_job_history(ws: Workspace, owner_email: str, state: dict[str, Any]) -> None:
+    email = normalize_owner_email(owner_email)
+    record = dict(state)
+    record["owner_email"] = email
+    record["archived_utc"] = _now()
+    path = job_history_path(ws, email)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record) + "\n")
+
+
+def load_job_history(ws: Workspace, owner_email: str, limit: int = 25) -> list[dict[str, Any]]:
+    path = job_history_path(ws, normalize_owner_email(owner_email))
+    if not path.is_file():
+        return []
+    by_id: dict[str, dict[str, Any]] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        job_id = str(record.get("job_id", ""))
+        if job_id:
+            by_id[job_id] = record
+        else:
+            by_id[f"row_{len(by_id)}"] = record
+    rows = sorted(by_id.values(), key=lambda r: r.get("archived_utc", ""), reverse=True)
+    return rows[:limit]
+
+
+def list_user_jobs(ws: Workspace, owner_email: str) -> dict[str, Any]:
+    email = normalize_owner_email(owner_email)
+    active = sync_job_state(ws, email)
+    history = load_job_history(ws, email)
+    if active:
+        active_id = str(active.get("job_id", ""))
+        history = [h for h in history if str(h.get("job_id", "")) != active_id]
+    return {"active": active, "history": history}
+
+
 def _pid_alive(pid: int | None) -> bool:
     if not pid or pid <= 0:
         return False
@@ -200,6 +243,7 @@ def start_background_evaluation(
     resume: bool,
     eval_limit: int | None,
     parallel_workers: int,
+    github_env: dict[str, str] | None = None,
 ) -> None:
     email = normalize_owner_email(owner_email)
     existing = sync_job_state(ws, email)
