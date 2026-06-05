@@ -1,4 +1,4 @@
-"""AFW Eval Agent — live dashboard (Streamlit + Plotly). Auto-updates when agent exports data."""
+"""AFW Screening Chatbot Evaluation Dashboard — Streamlit + Plotly."""
 from __future__ import annotations
 
 import json
@@ -9,12 +9,27 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
+from afw_eval_dashboard.analytics import (
+    OUTCOME_ORDER,
+    confusion_pivot,
+    executive_insights,
+    failures,
+    filter_runs,
+    mcnemar_ready,
+    pct,
+    prepare_personas,
+    recall_matrix,
+    run_comparison_table,
+    top_confusion_pairs,
+)
 from afw_eval_dashboard.github_loader import (
     load_tables_from_github,
     resolve_github_settings,
 )
+from afw_eval_dashboard.theme import BRAND, OUTCOME_COLORS, hero, inject_css, insight
 
 DESK = Path(__file__).resolve().parent.parent
 CONFIG = DESK / "github_publish_config.txt"
@@ -24,6 +39,8 @@ DATA_CANDIDATES = [
     DESK / "powerbi_export",
 ]
 
+
+# ── Data loading ─────────────────────────────────────────────────────────────
 
 def _find_data_root() -> Path:
     for p in DATA_CANDIDATES:
@@ -36,16 +53,7 @@ def _has_local_export() -> bool:
     return (_find_data_root() / "csv" / "Evaluation_Runs.csv").is_file()
 
 
-def _is_match(val) -> bool:
-    if val is True:
-        return True
-    if val is False or val is None or (isinstance(val, float) and pd.isna(val)):
-        return False
-    return str(val).strip().lower() in {"1", "true", "yes"}
-
-
 def _data_fingerprint(root: Path) -> str:
-    """Change when agent writes new export files → busts cache for live updates."""
     parts: list[str] = []
     for rel in ("refresh_manifest.json", "csv/Evaluation_Runs.csv", "csv/Refresh_Log.csv"):
         p = root / rel
@@ -61,9 +69,7 @@ def load_tables_local(data_root: str, fingerprint: str) -> dict[str, pd.DataFram
 
     def _read(name: str) -> pd.DataFrame:
         path = csv_dir / name
-        if path.is_file():
-            return pd.read_csv(path)
-        return pd.DataFrame()
+        return pd.read_csv(path) if path.is_file() else pd.DataFrame()
 
     tables = {
         "runs": _read("Evaluation_Runs.csv"),
@@ -74,11 +80,9 @@ def load_tables_local(data_root: str, fingerprint: str) -> dict[str, pd.DataFram
         "cases": _read("User_Test_Cases.csv"),
         "refresh": _read("Refresh_Log.csv"),
     }
-
     manifest = root / "refresh_manifest.json"
     if manifest.is_file():
-        meta = json.loads(manifest.read_text(encoding="utf-8"))
-        tables["meta"] = pd.DataFrame([meta])
+        tables["meta"] = pd.DataFrame([json.loads(manifest.read_text(encoding="utf-8"))])
     return tables
 
 
@@ -98,174 +102,273 @@ def load_tables_github(settings_key: str, use_config_file: bool) -> dict[str, pd
     return load_tables_from_github(settings)
 
 
-def _pct(val) -> str:
-    try:
-        return f"{float(val):.1f}%"
-    except (TypeError, ValueError):
-        return "—"
-
+# ── Pages (Power BI guide alignment) ─────────────────────────────────────────
 
 def page_executive(runs: pd.DataFrame, personas: pd.DataFrame, summary: pd.DataFrame) -> None:
-    st.header("Executive Overview")
+    hero("Executive Summary", "KPI overview across evaluation arms — per Power BI guide § Summary")
 
     if runs.empty:
-        st.warning("No evaluation runs yet. Run the agent (menu 1) to populate data.")
+        st.warning("No evaluation runs yet. Run the agent (menu 1) then push exports to GitHub.")
         return
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Evaluation Runs", len(runs))
-    c2.metric("Avg Accuracy", _pct(runs["Accuracy Pct"].mean()))
-    c3.metric("Best Run", runs.loc[runs["Accuracy Pct"].idxmax(), "Display Name"][:40])
-    c4.metric("Persona Results", len(personas))
+    for tip in executive_insights(runs, personas, summary):
+        insight(tip)
 
-    left, right = st.columns([1, 1])
+    best = runs.loc[runs["Accuracy Pct"].idxmax()]
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Evaluation Arms", len(runs))
+    c2.metric("Mean Accuracy", pct(runs["Accuracy Pct"].mean()))
+    c3.metric("Best Accuracy", pct(best["Accuracy Pct"]))
+    c4.metric("Personas Scored", f"{int(personas['Persona ID'].nunique()) if not personas.empty else 0:,}")
+    c5.metric("Total Errors", f"{len(failures(personas)):,}")
+
+    left, right = st.columns([3, 2])
     with left:
+        ordered = runs.sort_values("Accuracy Pct", ascending=True)
         fig = px.bar(
-            runs.sort_values("Accuracy Pct", ascending=True),
+            ordered,
             x="Accuracy Pct",
             y="Display Name",
             orientation="h",
-            title="Final Outcome Accuracy by Run",
             color="Model Display",
             text="Accuracy Pct",
+            labels={"Accuracy Pct": "Accuracy %", "Display Name": ""},
+            title="Final Outcome Accuracy by Arm",
         )
         fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
-        fig.update_layout(height=420, margin=dict(l=10, r=10, t=40, b=10))
+        fig.update_layout(height=380, showlegend=True)
         st.plotly_chart(fig, use_container_width=True)
 
     with right:
-        fig2 = px.scatter(
-            runs,
-            x="Persona Count",
-            y="Accuracy Pct",
-            size="Correct Count",
-            color="Model Display",
-            hover_name="Display Name",
-            title="Accuracy vs Personas Evaluated",
+        fig2 = go.Figure(go.Scatter(
+            x=runs["Persona Count"],
+            y=runs["Accuracy Pct"],
+            mode="markers+text",
+            text=runs["Prompt Label"],
+            textposition="top center",
+            marker=dict(
+                size=runs["Correct Count"] / 3 + 10,
+                color=runs["Accuracy Pct"],
+                colorscale=[[0, BRAND["danger"]], [0.5, BRAND["gold"]], [1, BRAND["success"]]],
+                showscale=True,
+                colorbar=dict(title="Acc %"),
+            ),
+            hovertext=runs["Display Name"],
+            hoverinfo="text+x+y",
+        ))
+        fig2.update_layout(
+            title="Accuracy vs Coverage",
+            xaxis_title="Personas",
+            yaxis_title="Accuracy %",
+            height=380,
         )
-        fig2.update_layout(height=420)
         st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("All Evaluation Runs")
-    show_cols = [
-        "Display Name",
-        "Model Display",
-        "Prompt Label",
-        "Persona Count",
-        "Correct Count",
-        "Accuracy Pct",
-        "Created UTC",
-    ]
-    st.dataframe(runs[show_cols], use_container_width=True, hide_index=True)
-
-    if not summary.empty:
-        st.subheader("Recall by Outcome Class")
-        fig3 = px.bar(
-            summary,
-            x="Outcome Class",
-            y="Recall Pct",
-            color="Display Name",
-            barmode="group",
-            title="Per-Class Recall Across Runs",
-        )
-        st.plotly_chart(fig3, use_container_width=True)
+    st.subheader("Arm Comparison Table")
+    styled = run_comparison_table(runs)
+    st.dataframe(
+        styled,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Accuracy Pct": st.column_config.NumberColumn(format="%.1f%%"),
+            "Vs Best": st.column_config.NumberColumn("Δ vs Best (pp)", format="%.1f"),
+        },
+    )
 
 
-def page_personas(personas: pd.DataFrame, runs: pd.DataFrame) -> None:
-    st.header("Persona Drill-Down")
-    if personas.empty:
-        st.info("No persona results yet.")
+def page_accuracy_by_class(summary: pd.DataFrame, runs: pd.DataFrame) -> None:
+    hero("Accuracy by Class", "Per-class recall matrix — Power BI guide § Accuracy by class")
+
+    if summary.empty:
+        st.info("No per-class summary available.")
         return
 
-    run_pick = st.selectbox(
-        "Evaluation run",
-        ["All runs"] + sorted(personas["Display Name"].dropna().unique().tolist()),
+    mat = recall_matrix(summary)
+    if mat.empty:
+        st.info("No recall data.")
+        return
+
+    fig = px.imshow(
+        mat,
+        text_auto=".1f",
+        aspect="auto",
+        color_continuous_scale=[[0, "#FEE2E2"], [0.5, "#FEF3C7"], [1, "#DCFCE7"]],
+        labels=dict(color="Recall %"),
+        title="Recall by Gold Outcome Class (rows) × Evaluation Arm (columns)",
     )
-    df = personas if run_pick == "All runs" else personas[personas["Display Name"] == run_pick]
+    fig.update_layout(height=420)
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Class Detail")
+    run_pick = st.selectbox(
+        "Focus arm",
+        sorted(summary["Display Name"].dropna().unique()),
+        key="class_run",
+    )
+    sub = summary[summary["Display Name"] == run_pick].copy()
+    sub = sub.set_index("Outcome Class").reindex(OUTCOME_ORDER).reset_index()
+    sub = sub.dropna(subset=["Recall Pct"])
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        fig2 = px.bar(
+            sub,
+            x="Outcome Class",
+            y="Recall Pct",
+            color="Outcome Class",
+            color_discrete_map=OUTCOME_COLORS,
+            text="Recall Pct",
+            title=f"Recall by Class — {run_pick}",
+        )
+        fig2.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+        fig2.update_layout(showlegend=False, height=360)
+        st.plotly_chart(fig2, use_container_width=True)
+    with col2:
+        if not sub.empty:
+            worst = sub.loc[sub["Recall Pct"].idxmin()]
+            insight(
+                f"<strong>Action:</strong> Improve <em>{worst['Outcome Class']}</em> handling — "
+                f"only <strong>{pct(worst['Recall Pct'])}</strong> recall "
+                f"({int(worst['Correct In Class'])}/{int(worst['Personas In Class'])})."
+            )
+        st.dataframe(
+            sub[["Outcome Class", "Personas In Class", "Correct In Class", "Recall Pct"]],
+            hide_index=True,
+            use_container_width=True,
+        )
+
+
+def page_confusion(personas: pd.DataFrame) -> None:
+    hero("Confusion Analysis", "Truth × predicted outcome — Power BI guide § Confusion")
+
+    if personas.empty:
+        st.info("No persona results.")
+        return
+
+    runs = sorted(personas["Display Name"].dropna().unique())
+    run_sel = st.selectbox("Evaluation arm", runs, key="conf_run")
+
+    pivot = confusion_pivot(personas, run_sel)
+    if pivot.empty:
+        st.warning("No confusion data for this arm.")
+        return
+
+    fig = px.imshow(
+        pivot,
+        text_auto=True,
+        color_continuous_scale="Blues",
+        labels=dict(x="Predicted", y="Gold (Truth)", color="Count"),
+        title=f"Confusion Matrix — {run_sel}",
+    )
+    fig.update_layout(height=440)
+    st.plotly_chart(fig, use_container_width=True)
+
+    pairs = top_confusion_pairs(
+        personas[personas["Display Name"] == run_sel], n=8
+    )
+    if not pairs.empty:
+        st.subheader("Top Misclassification Patterns")
+        fig2 = px.bar(
+            pairs,
+            x="Errors",
+            y="Pattern",
+            orientation="h",
+            title="Most frequent gold → predicted errors",
+            color="Errors",
+            color_continuous_scale=[[0, BRAND["sky"]], [1, BRAND["danger"]]],
+        )
+        fig2.update_layout(height=320, showlegend=False)
+        st.plotly_chart(fig2, use_container_width=True)
+        insight(
+            "<strong>Prompt tuning:</strong> Review transcripts for the top patterns above "
+            "in the Failure Review tab — these drive the largest accuracy gains."
+        )
+
+
+def page_failure_review(personas: pd.DataFrame, turns: pd.DataFrame) -> None:
+    hero("Failure Review", "Actionable error queue for prompt and policy improvements")
+
+    bad = failures(personas)
+    if bad.empty:
+        st.success("No failures in the selected runs.")
+        return
 
     c1, c2, c3 = st.columns(3)
-    correct = int(df["Correct Match"].map(_is_match).sum()) if "Correct Match" in df.columns else 0
-    total = len(df)
-    c1.metric("Personas", total)
-    c2.metric("Correct", correct)
-    c3.metric("Accuracy", _pct(100 * correct / total if total else 0))
+    c1.metric("Failed Personas", len(bad))
+    patterns = top_confusion_pairs(personas, 1)
+    if not patterns.empty:
+        c2.metric("Top Error Pattern", patterns.iloc[0]["Pattern"][:28])
+        c3.metric("Count", int(patterns.iloc[0]["Errors"]))
 
-    col_l, col_r = st.columns(2)
-    with col_l:
-        if "Truth Label" in df.columns:
-            truth = df["Truth Label"].value_counts().reset_index()
-            truth.columns = ["Outcome", "Count"]
-            st.plotly_chart(
-                px.pie(truth, names="Outcome", values="Count", title="Gold (Truth) Distribution"),
-                use_container_width=True,
-            )
-    with col_r:
-        if "Predicted Label" in df.columns:
-            pred = df["Predicted Label"].value_counts().reset_index()
-            pred.columns = ["Outcome", "Count"]
-            st.plotly_chart(
-                px.pie(pred, names="Outcome", values="Count", title="Predicted Distribution"),
-                use_container_width=True,
-            )
-
-    if {"Truth Label", "Predicted Label"}.issubset(df.columns):
-        confusion = (
-            df.groupby(["Truth Label", "Predicted Label"])
-            .size()
-            .reset_index(name="Count")
-        )
-        pivot = confusion.pivot(index="Truth Label", columns="Predicted Label", values="Count").fillna(0)
-        fig = px.imshow(
-            pivot,
-            text_auto=True,
-            title="Truth vs Predicted (count)",
-            color_continuous_scale="Blues",
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    persona_filter = st.multiselect(
-        "Filter personas (optional)",
-        sorted(df["Persona ID"].dropna().unique().tolist()),
+    pattern_filter = st.multiselect(
+        "Filter by truth label",
+        sorted(bad["Truth Label"].dropna().unique()),
     )
-    show = df if not persona_filter else df[df["Persona ID"].isin(persona_filter)]
-    cols = [c for c in [
-        "Display Name",
-        "Persona ID",
-        "Truth Label",
-        "Predicted Label",
-        "Correct Match",
-        "Error",
-    ] if c in show.columns]
-    st.dataframe(show[cols].sort_values("Persona ID"), use_container_width=True, hide_index=True)
+    show = bad if not pattern_filter else bad[bad["Truth Label"].isin(pattern_filter)]
+
+    st.dataframe(
+        show,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Truth Label": st.column_config.TextColumn("Gold"),
+            "Predicted Label": st.column_config.TextColumn("Predicted"),
+        },
+    )
+
+    if not turns.empty and "Display Name" in show.columns:
+        st.subheader("Inspect Conversation")
+        row_idx = st.selectbox(
+            "Select failure",
+            range(len(show)),
+            format_func=lambda i: (
+                f"{show.iloc[i]['Persona ID']} — "
+                f"{show.iloc[i]['Truth Label']} → {show.iloc[i]['Predicted Label']}"
+            ),
+        )
+        row = show.iloc[row_idx]
+        chat = turns[
+            (turns["Display Name"] == row["Display Name"])
+            & (turns["Persona ID"] == row["Persona ID"])
+        ].sort_values("Turn Number")
+        for _, turn in chat.iterrows():
+            with st.container(border=True):
+                st.markdown(f"**Turn {turn.get('Turn Number', '')}** · {turn.get('Question', '')}")
+                st.markdown(f"**User:** {turn.get('User Message', '')}")
+                st.markdown(f"**Assistant:** {turn.get('Assistant Response', '')}")
 
 
 def page_conversations(turns: pd.DataFrame, personas: pd.DataFrame) -> None:
-    st.header("Conversation Transcripts")
+    hero("Conversations", "Full transcript drill-down by arm and persona")
+
     if turns.empty:
-        st.info("No turn-level data yet.")
+        st.info("No turn-level data.")
         return
 
     runs = sorted(turns["Display Name"].dropna().unique())
-    run_sel = st.selectbox("Run", runs)
+    run_sel = st.selectbox("Run", runs, key="conv_run")
     sub = turns[turns["Display Name"] == run_sel]
-    personas_in_run = sorted(sub["Persona ID"].dropna().unique())
-    persona_sel = st.selectbox("Persona", personas_in_run)
-
+    persona_sel = st.selectbox(
+        "Persona",
+        sorted(sub["Persona ID"].dropna().unique()),
+        key="conv_persona",
+    )
     chat = sub[sub["Persona ID"] == persona_sel].sort_values("Turn Number")
-    if chat.empty:
-        st.warning("No turns for this persona.")
-        return
 
     if not personas.empty:
         pr = personas[
             (personas["Display Name"] == run_sel) & (personas["Persona ID"] == persona_sel)
         ]
         if not pr.empty:
-            row = pr.iloc[0]
-            st.caption(
-                f"Truth: **{row.get('Truth Label', '')}** · "
-                f"Predicted: **{row.get('Predicted Label', '')}** · "
-                f"Match: **{'Yes' if row.get('Correct Match') == 1 else 'No'}**"
+            r = pr.iloc[0]
+            match = r.get("Correct Match Flag", r.get("Correct Match"))
+            from afw_eval_dashboard.analytics import is_match
+            ok = is_match(match)
+            st.markdown(
+                f"**Gold:** `{r.get('Truth Label', '')}` · "
+                f"**Predicted:** `{r.get('Predicted Label', '')}` · "
+                f"**Match:** {'✅' if ok else '❌'}"
             )
 
     for _, turn in chat.iterrows():
@@ -273,63 +376,71 @@ def page_conversations(turns: pd.DataFrame, personas: pd.DataFrame) -> None:
             st.markdown(f"**Turn {turn.get('Turn Number', '')}** — {turn.get('Question', '')}")
             st.markdown(f"**User:** {turn.get('User Message', '')}")
             st.markdown(f"**Assistant:** {turn.get('Assistant Response', '')}")
-            if pd.notna(turn.get("Checkpoint Correct")):
-                ok = int(turn.get("Checkpoint Correct", 0)) == 1
-                st.caption(f"Checkpoint: {'Correct' if ok else 'Incorrect'}")
-
-    st.subheader("All turns (table)")
-    show_cols = [c for c in [
-        "Persona ID",
-        "Turn Number",
-        "Question",
-        "User Message",
-        "Assistant Response",
-        "Checkpoint Correct",
-    ] if c in chat.columns]
-    st.dataframe(chat[show_cols], use_container_width=True, hide_index=True)
 
 
 def page_statistics(mcnemar: pd.DataFrame) -> None:
-    st.header("McNemar Comparisons")
-    if mcnemar.empty or "Note" in mcnemar.columns:
+    hero("Statistical Comparisons", "McNemar paired tests — Power BI guide § McNemar")
+
+    if not mcnemar_ready(mcnemar):
         st.info(
-            "No paired comparisons yet. In the eval agent, use **menu 2** "
-            "to compare two runs — results will appear here automatically."
+            "**No McNemar results yet.** In the eval agent, use **menu 2** to compare two runs. "
+            "Significant comparisons (p < 0.05) will highlight here automatically."
+        )
+        st.markdown(
+            "Expected comparisons per guide: OpenAI v1 vs v10, Claude v1 vs v10, "
+            "OpenAI v1 vs Claude v1, OpenAI v10 vs Claude v10."
         )
         return
-    st.dataframe(mcnemar, use_container_width=True, hide_index=True)
+
+    df = mcnemar.copy()
+    if "Significant At 0 05" in df.columns:
+        df["Significant"] = df["Significant At 0 05"].astype(str).isin({"1", "True", "true"})
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Mcnemar P Value": st.column_config.NumberColumn(format="%.4f"),
+            "Ate Percentage Points": st.column_config.NumberColumn("ATE (pp)", format="%.2f"),
+        },
+    )
+
+    if "Significant" in df.columns and df["Significant"].any():
+        sig = df[df["Significant"]]
+        for _, row in sig.iterrows():
+            insight(
+                f"<strong>Significant:</strong> {row.get('Group A', '')} vs {row.get('Group B', '')} — "
+                f"ATE {row.get('Ate Percentage Points', '—')} pp, "
+                f"p = {row.get('Mcnemar P Value', '—')}"
+            )
 
 
 def page_test_cases(cases: pd.DataFrame) -> None:
-    st.header("Gold User Test Cases")
-    st.caption("Original test case columns preserved from the source Excel.")
+    hero("Gold Test Cases", "Source workbook — original columns preserved")
+
     if cases.empty:
         st.info("No test cases loaded.")
         return
 
     pid = st.selectbox(
         "Persona",
-        ["(show all)"] + sorted(cases["persona_id"].dropna().astype(str).unique().tolist()),
+        ["(all)"] + sorted(cases["persona_id"].dropna().astype(str).unique().tolist()),
     )
-    df = cases if pid == "(show all)" else cases[cases["persona_id"].astype(str) == pid]
-
+    df = cases if pid == "(all)" else cases[cases["persona_id"].astype(str) == pid]
     key_cols = [
-        c
-        for c in [
-            "persona_id",
-            "engineered_for",
-            "simulated_user_message",
-            "ix. final eligibility outcome",
-            "ix. manual label",
-            "labeler notes",
+        c for c in [
+            "persona_id", "engineered_for", "simulated_user_message",
+            "ix. final eligibility outcome", "ix. manual label", "labeler notes",
         ]
         if c in df.columns
     ]
     st.dataframe(df[key_cols] if key_cols else df, use_container_width=True, hide_index=True)
-
-    with st.expander("All columns (full export)"):
+    with st.expander("All columns"):
         st.dataframe(df, use_container_width=True, hide_index=True)
 
+
+# ── Runtime helpers ────────────────────────────────────────────────────────────
 
 def _run_script(script: Path) -> None:
     if script.is_file():
@@ -344,48 +455,29 @@ def _is_codespace() -> bool:
     return Path("/workspaces").exists() and bool(os.environ.get("CODESPACES"))
 
 
-def _team_password_ok() -> bool:
-    """Optional gate via Streamlit secrets TEAM_PASSWORD (share URL + password with team)."""
+def _team_password_ok() -> None:
     pwd = ""
     try:
         pwd = st.secrets.get("TEAM_PASSWORD", "")
     except Exception:
         pwd = os.environ.get("TEAM_PASSWORD", "")
-    if not pwd:
-        return True
-    if st.session_state.get("team_auth"):
-        return True
-    st.title("AFW Eval Team Dashboard")
-    st.caption("Enter the team password shared by your project lead.")
+    if not pwd or st.session_state.get("team_auth"):
+        return
+    hero("AFW Eval Dashboard", "Enter team password to continue")
     entered = st.text_input("Password", type="password")
     if st.button("Continue", type="primary") and entered == pwd:
         st.session_state.team_auth = True
         st.rerun()
     st.stop()
-    return False
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title="AFW Eval Live Dashboard",
-        page_icon="✈️",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
-
-    _team_password_ok()
-
-    st.title("Angel Flight West — Eval Dashboard")
-    st.caption("UC Davis GSM MSBA · Screening chatbot evaluation · Live team view")
-
-    st.sidebar.title("AFW Team Dashboard")
-    st.sidebar.caption("UC Davis GSM MSBA · Angel Flight West Practicum")
-
+def _load_tables() -> dict[str, pd.DataFrame]:
     cloud = _is_streamlit_cloud()
     codespace = _is_codespace()
     local_ok = _has_local_export()
-    secrets_obj = None
+    secrets_obj = getattr(st, "secrets", None)
     try:
+        _ = st.secrets
         secrets_obj = st.secrets
     except Exception:
         pass
@@ -395,70 +487,56 @@ def main() -> None:
     )
 
     if cloud and local_ok:
-        use_github = "Local folder"
-        st.sidebar.info("Streamlit Cloud — using data committed in this repo.")
-    elif cloud:
-        use_github = "GitHub (team live)"
-        st.sidebar.info(
-            f"Streamlit Cloud — live from github.com/{gh_settings['owner']}/{gh_settings['repo']}"
-        )
-    elif codespace and local_ok:
-        use_github = "Local folder"
-        st.sidebar.info("Codespace — using `workspace/powerbi_export/csv` in this repo.")
-    elif gh_settings and local_ok and not cloud:
-        use_github = st.sidebar.radio(
-            "Data source",
-            ["GitHub (team live)", "Local folder"],
-            index=0,
-            help="GitHub mode pulls latest CSVs from the agent repo.",
-        )
-    elif gh_settings:
-        use_github = "GitHub (team live)"
+        use_github = False
+        st.sidebar.success("Data: committed in repo")
+    elif cloud or (gh_settings and not (codespace and local_ok)):
+        use_github = True
+        st.sidebar.success(f"Data: github.com/{gh_settings['owner']}/{gh_settings['repo']}")
     elif local_ok:
-        use_github = "Local folder"
+        use_github = st.sidebar.radio("Data source", ["Local", "GitHub"], index=0) == "GitHub"
     else:
-        use_github = st.sidebar.radio(
-            "Data source",
-            ["GitHub (team live)", "Local folder"],
-            index=1,
-            help="Set GITHUB_TOKEN env var or add workspace/powerbi_export/csv.",
-        )
+        use_github = True
 
-    live = st.sidebar.toggle("Auto-refresh (20s)", value=True)
-    if live:
-        st.markdown('<meta http-equiv="refresh" content="20">', unsafe_allow_html=True)
-
-    if use_github == "GitHub (team live)":
+    if use_github:
         if not gh_settings:
-            st.error(
-                "GitHub not configured. Add secrets (see DEPLOY_TEAM_DASHBOARD.md) "
-                "or github_publish_config.txt locally."
-            )
+            st.error("GitHub not configured.")
             st.stop()
         tables = load_tables_github(
             f"{gh_settings['owner']}/{gh_settings['repo']}:{gh_settings['branch']}",
             use_config_file=not cloud,
         )
         if tables["runs"].empty:
-            st.error(
-                "Could not load data from GitHub. Check Streamlit secrets: "
-                "`GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`."
-            )
+            st.error("Could not load data from GitHub.")
             st.stop()
-        st.sidebar.success(f"Live from github.com/{gh_settings['owner']}/{gh_settings['repo']}")
     else:
-        default_root = _find_data_root()
-        data_root = Path(st.sidebar.text_input("Data folder", value=str(default_root)))
-        if st.sidebar.button("Sync from GitHub now", use_container_width=True):
+        root = Path(st.sidebar.text_input("Data folder", str(_find_data_root())))
+        if st.sidebar.button("Sync from GitHub"):
             load_tables_local.clear()
             _run_script(DESK / "sync_powerbi_from_github.py")
             st.rerun()
-        if st.sidebar.button("Rebuild local export", use_container_width=True):
-            load_tables_local.clear()
-            _run_script(DESK / "rewrite_powerbi_exports.py")
-            st.rerun()
-        fp = _data_fingerprint(data_root)
-        tables = load_tables_local(str(data_root), fp)
+        tables = load_tables_local(str(root), _data_fingerprint(root))
+
+    tables["personas"] = prepare_personas(tables["personas"])
+    return tables
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="AFW Eval Dashboard",
+        page_icon="✈️",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    inject_css()
+    _team_password_ok()
+
+    st.sidebar.markdown("### ✈️ AFW Eval")
+    st.sidebar.caption("Angel Flight West · UC Davis GSM MSBA")
+
+    if st.sidebar.toggle("Auto-refresh (20s)", value=True):
+        st.markdown('<meta http-equiv="refresh" content="20">', unsafe_allow_html=True)
+
+    tables = _load_tables()
     runs = tables["runs"]
     personas = tables["personas"]
     turns = tables["turns"]
@@ -468,44 +546,54 @@ def main() -> None:
     refresh = tables["refresh"]
 
     if not refresh.empty and "Last Updated UTC" in refresh.columns:
-        st.sidebar.success(f"Last export: {refresh['Last Updated UTC'].iloc[0]}")
-    if "meta" in tables and not tables["meta"].empty:
-        st.sidebar.metric("Runs in dataset", int(tables["meta"]["run_count"].iloc[0]))
+        st.sidebar.caption(f"Last export: {refresh['Last Updated UTC'].iloc[0]}")
+    if "meta" in tables and not tables["meta"].empty and "run_count" in tables["meta"].columns:
+        st.sidebar.metric("Runs", int(tables["meta"]["run_count"].iloc[0]))
 
     st.sidebar.markdown("---")
-    if cloud:
-        st.sidebar.markdown(
-            "**Data:** github.com/shprasa/afw-chatbot-eval-agent (public)\n\n"
-            "**URL:** https://afw-chatbot-eval.streamlit.app\n\n"
-            "Refreshes every 20s after `python push_streamlit_dashboard.py`."
-        )
-    elif codespace:
-        st.sidebar.markdown(
-            "**Codespace:** forward port 8501 from the Ports tab to open in browser."
-        )
-    else:
-        st.sidebar.markdown(
-            "**Local URL:** http://localhost:8502\n\n"
-            "**Team URL:** https://afw-chatbot-eval.streamlit.app"
-        )
+    run_options = sorted(runs["Display Name"].dropna().unique()) if not runs.empty else []
+    selected_labels = st.sidebar.multiselect(
+        "Filter arms",
+        run_options,
+        default=run_options,
+        help="Power BI guide: slicer on arm / display name",
+    )
+    selected_ids = (
+        runs[runs["Display Name"].isin(selected_labels)]["Run ID"].tolist()
+        if not runs.empty and selected_labels
+        else None
+    )
+    runs, personas, turns, summary = filter_runs(
+        runs, personas, turns, summary, selected_ids
+    )
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Executive Overview",
-        "Persona Analysis",
+    st.sidebar.markdown(
+        "[GitHub repo](https://github.com/shprasa/afw-chatbot-eval-agent) · Public"
+    )
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "Executive Summary",
+        "Accuracy by Class",
+        "Confusion",
+        "Failure Review",
         "Conversations",
-        "Statistics",
+        "McNemar Stats",
         "Gold Test Cases",
     ])
 
     with tab1:
         page_executive(runs, personas, summary)
     with tab2:
-        page_personas(personas, runs)
+        page_accuracy_by_class(summary, runs)
     with tab3:
-        page_conversations(turns, personas)
+        page_confusion(personas)
     with tab4:
-        page_statistics(mcnemar)
+        page_failure_review(personas, turns)
     with tab5:
+        page_conversations(turns, personas)
+    with tab6:
+        page_statistics(mcnemar)
+    with tab7:
         page_test_cases(cases)
 
 
