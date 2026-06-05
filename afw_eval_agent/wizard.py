@@ -16,6 +16,7 @@ from .registry import (
     list_prompt_labels,
     load_registry,
 )
+from .powerbi_export import export_powerbi_data
 from .runner import import_legacy_run, run_evaluation
 from .template import (
     TEMPLATE_STRICT_NOTICE,
@@ -333,7 +334,8 @@ def main(argv: list[str] | None = None) -> int:
         print("  7. Add API model host")
         print("  8. Add prompt version label")
         print("  9. List saved models and prompt labels")
-        print(" 10. Exit")
+        print(" 10. Refresh Power BI export now")
+        print(" 11. Exit")
         choice = _prompt("Choice", "1")
         try:
             if choice == "1":
@@ -358,6 +360,9 @@ def main(argv: list[str] | None = None) -> int:
             elif choice == "9":
                 menu_list_customization(ws)
             elif choice == "10":
+                pbi = export_powerbi_data(ws)
+                print(f"Power BI export written: {pbi}")
+            elif choice == "11":
                 print("Goodbye.")
                 break
             else:
