@@ -21,7 +21,7 @@ The dashboard reads eval CSV exports from this repo. No GitHub token is required
 From your Desktop folder:
 
 ```cmd
-python push_readme_to_github.py
+python push_streamlit_dashboard.py
 ```
 
 This uploads `streamlit_app.py`, `afw_eval_dashboard/`, `requirements.txt`, and `workspace/powerbi_export/csv/`.
