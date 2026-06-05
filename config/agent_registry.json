@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "models": {
+    "openai": {
+      "display": "OpenAI (angel-flight-chatbot-app)",
+      "base_url": "https://angel-flight-chatbot-app.azurewebsites.net",
+      "backend": "openai",
+      "builtin": true
+    },
+    "claude": {
+      "display": "Claude (angel-flight-chatbot-claude)",
+      "base_url": "https://angel-flight-chatbot-claude.azurewebsites.net",
+      "backend": "claude",
+      "builtin": true
+    }
+  },
+  "prompt_labels": {
+    "v1": {
+      "label": "System Prompt v1",
+      "notes": "Default v1 label — prompt text is deployed on the API host only.",
+      "reference_file": "prompts/prompt_extract_v1.txt",
+      "builtin": true
+    },
+    "v10": {
+      "label": "System Prompt v10",
+      "notes": "Default v10 label — prompt text is deployed on the API host only.",
+      "reference_file": "prompts/prompt_extract_v10.txt",
+      "builtin": true
+    }
+  }
+}
