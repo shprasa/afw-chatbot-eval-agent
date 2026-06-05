@@ -15,21 +15,35 @@ import streamlit as st
 from afw_eval_dashboard.analytics import (
     OUTCOME_ORDER,
     confusion_pivot,
-    executive_insights,
     failures,
     filter_runs,
-    mcnemar_ready,
     pct,
     prepare_personas,
     recall_matrix,
     run_comparison_table,
     top_confusion_pairs,
 )
+from afw_eval_dashboard.mcnemar_loader import (
+    comparison_summary_df,
+    list_comparisons_github,
+    list_comparisons_local,
+    load_comparison_json,
+)
 from afw_eval_dashboard.github_loader import (
     load_tables_from_github,
     resolve_github_settings,
 )
-from afw_eval_dashboard.theme import BRAND, OUTCOME_COLORS, hero, inject_css, insight
+from afw_eval_dashboard.theme import (
+    BRAND,
+    CHART_HEIGHT,
+    CHART_HEIGHT_TALL,
+    OUTCOME_COLORS,
+    brand_header,
+    chart_layout,
+    hero,
+    inject_css,
+    insight,
+)
 
 DESK = Path(__file__).resolve().parent.parent
 CONFIG = DESK / "github_publish_config.txt"
@@ -104,15 +118,12 @@ def load_tables_github(settings_key: str, use_config_file: bool) -> dict[str, pd
 
 # ── Pages (Power BI guide alignment) ─────────────────────────────────────────
 
-def page_executive(runs: pd.DataFrame, personas: pd.DataFrame, summary: pd.DataFrame) -> None:
-    hero("Executive Summary", "KPI overview across evaluation arms — per Power BI guide § Summary")
+def page_run_overview(runs: pd.DataFrame, personas: pd.DataFrame) -> None:
+    hero("Run Overview", "Live metrics — updates when new evals are saved to the repo")
 
     if runs.empty:
-        st.warning("No evaluation runs yet. Run the agent (menu 1) then push exports to GitHub.")
+        st.warning("No evaluation runs yet. Use the **Eval Agent** tab to run an evaluation.")
         return
-
-    for tip in executive_insights(runs, personas, summary):
-        insight(tip)
 
     best = runs.loc[runs["Accuracy Pct"].idxmax()]
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -136,7 +147,8 @@ def page_executive(runs: pd.DataFrame, personas: pd.DataFrame, summary: pd.DataF
             title="Final Outcome Accuracy by Arm",
         )
         fig.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
-        fig.update_layout(height=380, showlegend=True)
+        chart_layout(fig, height=CHART_HEIGHT_TALL, extra_bottom=40)
+        fig.update_layout(yaxis=dict(automargin=True))
         st.plotly_chart(fig, use_container_width=True)
 
     with right:
@@ -149,7 +161,7 @@ def page_executive(runs: pd.DataFrame, personas: pd.DataFrame, summary: pd.DataF
             marker=dict(
                 size=runs["Correct Count"] / 3 + 10,
                 color=runs["Accuracy Pct"],
-                colorscale=[[0, BRAND["danger"]], [0.5, BRAND["gold"]], [1, BRAND["success"]]],
+                colorscale=[[0, BRAND["bright_red"]], [0.5, BRAND["orange"]], [1, BRAND["ocean"]]],
                 showscale=True,
                 colorbar=dict(title="Acc %"),
             ),
@@ -160,8 +172,8 @@ def page_executive(runs: pd.DataFrame, personas: pd.DataFrame, summary: pd.DataF
             title="Accuracy vs Coverage",
             xaxis_title="Personas",
             yaxis_title="Accuracy %",
-            height=380,
         )
+        chart_layout(fig2, height=CHART_HEIGHT)
         st.plotly_chart(fig2, use_container_width=True)
 
     st.subheader("Arm Comparison Table")
@@ -197,7 +209,7 @@ def page_accuracy_by_class(summary: pd.DataFrame, runs: pd.DataFrame) -> None:
         labels=dict(color="Recall %"),
         title="Recall by Truth Outcome Class (rows) × Evaluation Arm (columns)",
     )
-    fig.update_layout(height=420)
+    chart_layout(fig, height=CHART_HEIGHT_TALL, extra_bottom=20)
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Class Detail")
@@ -261,7 +273,7 @@ def page_confusion(personas: pd.DataFrame) -> None:
         labels=dict(x="Predicted", y="Truth", color="Count"),
         title=f"Confusion Matrix — {run_sel}",
     )
-    fig.update_layout(height=440)
+    chart_layout(fig, height=CHART_HEIGHT_TALL)
     st.plotly_chart(fig, use_container_width=True)
 
     pairs = top_confusion_pairs(
@@ -276,9 +288,10 @@ def page_confusion(personas: pd.DataFrame) -> None:
             orientation="h",
             title="Most frequent truth → predicted errors",
             color="Errors",
-            color_continuous_scale=[[0, BRAND["sky"]], [1, BRAND["danger"]]],
+            color_continuous_scale=[[0, BRAND["light_blue"]], [1, BRAND["bright_red"]]],
         )
-        fig2.update_layout(height=320, showlegend=False)
+        fig2.update_layout(showlegend=False)
+        chart_layout(fig2, height=CHART_HEIGHT, extra_bottom=30)
         st.plotly_chart(fig2, use_container_width=True)
         insight(
             "<strong>Prompt tuning:</strong> Review transcripts for the top patterns above "
@@ -378,42 +391,83 @@ def page_conversations(turns: pd.DataFrame, personas: pd.DataFrame) -> None:
             st.markdown(f"**Assistant:** {turn.get('Assistant Response', '')}")
 
 
-def page_statistics(mcnemar: pd.DataFrame) -> None:
-    hero("Statistical Comparisons", "McNemar paired tests — Power BI guide § McNemar")
+def page_mcnemar_test(
+    mcnemar: pd.DataFrame,
+    gh_settings: dict[str, str] | None,
+    workspace_root: Path,
+) -> None:
+    hero("McNemar's Test", "Paired comparison from Eval Agent → McNemar comparison")
 
-    if not mcnemar_ready(mcnemar):
+    comparisons = list_comparisons_local(workspace_root)
+    if not comparisons and gh_settings:
+        comparisons = list_comparisons_github(gh_settings)
+
+    if not comparisons:
         st.info(
-            "**No McNemar results yet.** In the eval agent, use **menu 2** to compare two runs. "
-            "Significant comparisons (p < 0.05) will highlight here automatically."
-        )
-        st.markdown(
-            "Expected comparisons per guide: OpenAI v1 vs v10, Claude v1 vs v10, "
-            "OpenAI v1 vs Claude v1, OpenAI v10 vs Claude v10."
+            "No McNemar comparisons yet. In the **Eval Agent** tab, open **McNemar comparison**, "
+            "pick Group A and Group B, then save results to the GitHub repo."
         )
         return
 
-    df = mcnemar.copy()
-    if "Significant At 0 05" in df.columns:
-        df["Significant"] = df["Significant At 0 05"].astype(str).isin({"1", "True", "true"})
-
-    st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Mcnemar P Value": st.column_config.NumberColumn(format="%.4f"),
-            "Ate Percentage Points": st.column_config.NumberColumn("ATE (pp)", format="%.2f"),
-        },
+    pick = st.selectbox(
+        "Comparison (from agent menu 2)",
+        comparisons,
+        format_func=lambda x: x["label"],
     )
 
-    if "Significant" in df.columns and df["Significant"].any():
-        sig = df[df["Significant"]]
-        for _, row in sig.iterrows():
-            insight(
-                f"<strong>Significant:</strong> {row.get('Group A', '')} vs {row.get('Group B', '')} — "
-                f"ATE {row.get('Ate Percentage Points', '—')} pp, "
-                f"p = {row.get('Mcnemar P Value', '—')}"
-            )
+    local_path = Path(pick["path"]) if pick.get("source") == "local" else None
+    repo_path = pick.get("path") if pick.get("source") == "github" else None
+    data = load_comparison_json(
+        local_path=local_path,
+        github_settings=gh_settings,
+        repo_path=repo_path,
+    )
+    if not data:
+        st.error("Could not load comparison file.")
+        return
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Paired personas", int(data.get("n_paired", 0)))
+    c2.metric("Accuracy A", pct(100 * float(data.get("accuracy_a", 0))))
+    c3.metric("Accuracy B", pct(100 * float(data.get("accuracy_b", 0))))
+    ate = float(data.get("ate_b_minus_a_pp", 0))
+    c4.metric("ATE (B − A)", f"{ate:+.1f} pp")
+
+    if data.get("significant_at_0_05"):
+        insight(
+            f"<strong>Significant at α=0.05</strong> — p = {float(data.get('mcnemar_p_value', 0)):.4f}"
+        )
+    else:
+        st.caption(f"Not significant at α=0.05 (p = {float(data.get('mcnemar_p_value', 0)):.4f})")
+
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Summary")
+        st.dataframe(comparison_summary_df(data), hide_index=True, use_container_width=True)
+    with right:
+        st.subheader("2×2 contingency (counts)")
+        table = data.get("mcnemar_table", {})
+        cells = table.get("cells", [[0, 0], [0, 0]])
+        fig = px.imshow(
+            cells,
+            text_auto=True,
+            x=[f"{data.get('name_b', 'B')} correct", f"{data.get('name_b', 'B')} wrong"],
+            y=[f"{data.get('name_a', 'A')} correct", f"{data.get('name_a', 'A')} wrong"],
+            color_continuous_scale=[[0, BRAND["light_blue"]], [1, BRAND["navy"]]],
+        )
+        chart_layout(fig, height=360)
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Discordant breakdown")
+    d1, d2, d3, d4 = st.columns(4)
+    d1.metric("Both correct", int(data.get("both_correct", 0)))
+    d2.metric("Both wrong", int(data.get("both_wrong", 0)))
+    d3.metric("A only correct", int(data.get("a_only_correct", 0)))
+    d4.metric("B only correct", int(data.get("b_only_correct", 0)))
+
+    if not mcnemar.empty and "Note" not in mcnemar.columns:
+        with st.expander("All comparisons (CSV export)"):
+            st.dataframe(mcnemar, use_container_width=True, hide_index=True)
 
 
 def page_test_cases(cases: pd.DataFrame, personas: pd.DataFrame) -> None:
@@ -534,21 +588,22 @@ def _load_tables() -> dict[str, pd.DataFrame]:
     return tables
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title="AFW Eval Dashboard",
-        page_icon="✈️",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
+def render_dashboard() -> None:
     inject_css()
     _team_password_ok()
 
-    st.sidebar.markdown("### ✈️ AFW Eval")
+    logo_candidates = [
+        DESK / "afw_eval_agent_ui" / "assets" / "afw_logo.png",
+        DESK / "assets" / "afw_logo.png",
+    ]
+    logo = next((p for p in logo_candidates if p.is_file()), None)
+    if logo:
+        st.sidebar.image(str(logo), width=100)
+    st.sidebar.markdown("### AFW Eval")
     st.sidebar.caption("Angel Flight West · UC Davis GSM MSBA")
 
-    if st.sidebar.toggle("Auto-refresh (20s)", value=True):
-        st.markdown('<meta http-equiv="refresh" content="20">', unsafe_allow_html=True)
+    if st.sidebar.toggle("Auto-refresh (20 min)", value=True):
+        st.markdown('<meta http-equiv="refresh" content="1200">', unsafe_allow_html=True)
 
     tables = _load_tables()
     runs = tables["runs"]
@@ -585,18 +640,26 @@ def main() -> None:
         "[GitHub repo](https://github.com/shprasa/afw-chatbot-eval-agent) · Public"
     )
 
+    gh_for_mcn = resolve_github_settings(
+        secrets=getattr(st, "secrets", None),
+        config_path=None if _is_streamlit_cloud() else CONFIG,
+    )
+    workspace_root = DESK / "workspace"
+    if not (workspace_root / "comparisons").is_dir():
+        workspace_root = DESK / "AFW_Eval_Agent_Handoff" / "workspace"
+
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "Executive Summary",
+        "Run Overview",
         "Accuracy by Class",
         "Confusion",
         "Failure Review",
         "Conversations",
-        "McNemar Stats",
+        "McNemar's Test",
         "User Test Cases",
     ])
 
     with tab1:
-        page_executive(runs, personas, summary)
+        page_run_overview(runs, personas)
     with tab2:
         page_accuracy_by_class(summary, runs)
     with tab3:
@@ -606,10 +669,22 @@ def main() -> None:
     with tab5:
         page_conversations(turns, personas)
     with tab6:
-        page_statistics(mcnemar)
+        page_mcnemar_test(mcnemar, gh_for_mcn, workspace_root)
     with tab7:
         page_test_cases(cases, personas)
 
 
+def main() -> None:
+    st.set_page_config(
+        page_title="AFW Eval Dashboard",
+        page_icon="✈️",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    render_dashboard()
+
+
 if __name__ == "__main__":
     main()
+else:
+    render_dashboard()
