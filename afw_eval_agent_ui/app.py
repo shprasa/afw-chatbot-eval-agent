@@ -107,11 +107,6 @@ def render_agent() -> None:
                     placeholder="https://my-host.azurewebsites.net",
                     key="new_model_url",
                 )
-                new_model_backend = st.selectbox(
-                    "Backend type",
-                    ["openai", "claude"],
-                    key="new_model_backend",
-                )
                 if st.button("Save model host", key="save_model_host"):
                     if not new_model_display.strip() or not new_model_url.strip():
                         st.error("Display name and Base URL are required.")
@@ -120,7 +115,7 @@ def render_agent() -> None:
                             added_key = add_model(
                                 display=new_model_display.strip(),
                                 base_url=new_model_url.strip(),
-                                backend=new_model_backend,
+                                backend="",
                             )
                             st.session_state["eval_model_host"] = added_key
                             st.success(
