@@ -1,206 +1,200 @@
-# AFW Chatbot Evaluation Agent
+# AFW Screening Chatbot Evaluation Agent
 
-**Plug-and-play handoff package** for running live screening evaluations against Angel Flight West (AFW) chatbot APIs, scoring accuracy against gold labels, generating failure/prompt reports, and comparing two model runs with **McNemar's test**.
+This tool runs scripted patient conversations against the Angel Flight West (AFW) screening chatbot, scores the chatbot's answers against your test workbook, and saves reports you can share with your team.
 
-Built for the **UC Davis Graduate School of Management MSBA** Angel Flight West **Demand Management practicum**. **This GitHub repo is the single source of truth** — agent code, test cases, predictions, transcripts, reports, and McNemar comparisons all live here under `workspace/`.
-
----
-
-## Who should use this?
-
-| Role | Typical use |
-|------|-------------|
-| **Product / ops** | Run a new eval after a prompt or model change; read accuracy + failure reports |
-| **Data / BI** | Use `workspace/powerbi_export/` and per-run CSVs |
-| **Engineering** | Verify API behavior; tune prompts using REMOVE/ADD recommendations |
-
-No Azure deployment knowledge is required for the default workflow — only Python, network access to AFW endpoints, and a test-case Excel file.
+Everything lives in this GitHub repo under the `workspace/` folder.
 
 ---
 
-## 5-minute quick start
+## Before you start
 
-### 1. Clone this repo
+You need:
+
+1. **This repo** cloned or downloaded to your computer  
+2. **Python 3.10+** installed  
+3. **Internet access** to the AFW chatbot APIs  
+4. **A test-case Excel file** (use the template in `workspace/templates/` or the bundled file in `workspace/datasets/`)
+
+---
+
+## Step 1 — Get the code
 
 ```powershell
 git clone https://github.com/shprasa/afw-chatbot-eval-agent.git
 cd afw-chatbot-eval-agent
+```
+
+---
+
+## Step 2 — Install required packages
+
+Open PowerShell or Terminal in the repo folder and run:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-### 2. Launch the agent
+---
 
-**Windows:** double-click `Run_Eval_Agent.bat`  
-**Any OS:**
+## Step 3 — Start the agent
+
+**Windows:** double-click `Run_Eval_Agent.bat`
+
+**Or run:**
 
 ```powershell
 python run_eval_agent.py
 ```
 
-Accept the default workspace: `workspace/` (inside the repo).
+A text menu will appear in your terminal.
 
-### 3. Run an evaluation (menu 1)
+---
 
-The wizard asks:
+## Step 4 — Choose where files are saved
 
-1. **Test cases** — use `workspace/datasets/` or upload new Excel  
-2. **Model host** — OpenAI or Claude (API URLs are preset)  
-3. **Prompt label** — v1, v10, or custom  
-4. **Run label** — short name for this run  
+On first launch, the agent asks for a **workspace folder**.
 
-Outputs land in `workspace/runs/<run_id>/`.
+Press **Enter** to accept the default:
 
-### 4. Compare two runs — McNemar (menu 2)
+```
+workspace
+```
 
-Four benchmark runs are pre-seeded. Pick any two → reports in `workspace/comparisons/`.
+That folder is inside this repo. All runs, reports, and comparisons are saved there.
 
-### 5. Commit and push
+---
+
+## Step 5 — Run an evaluation
+
+From the main menu, type **1** and press Enter.
+
+The agent will ask you a few questions. Here is what to pick:
+
+| Question | What to do |
+|----------|------------|
+| **Test cases file** | Choose **1** to use a file already in `workspace/datasets/`, or **3** to create a blank Excel template first |
+| **API / model host** | **1** = OpenAI host, **2** = Claude host |
+| **System prompt** | **1** = Prompt v1, **2** = Prompt v10 |
+| **Run label** | Type a short name, e.g. `march_openai_v1` |
+| **Resume?** | Type **n** for a fresh run (type **y** only if a previous run was interrupted) |
+| **Limit personas** | Press Enter to run all personas (or type a number for a small test) |
+| **Parallel workers** | Press Enter to accept **6** |
+
+The agent will POST each persona's user messages to the chatbot API. **Manual labels are never sent** — only the user-input message columns from your Excel file.
+
+When the run finishes, outputs are saved to:
+
+```
+workspace/runs/<run_id>/
+```
+
+Each run folder includes:
+
+- Predictions spreadsheet (`.csv`)
+- Full conversation log (`.jsonl`)
+- Accuracy summary (`.json`)
+- Failure analysis report (`.md`)
+- Prompt improvement suggestions (`.md`)
+
+---
+
+## Step 6 — Compare two runs (McNemar test)
+
+From the main menu, type **2** and press Enter.
+
+The agent lists completed runs. Pick **two** (for example, OpenAI v1 vs Claude v1).
+
+Reports are saved to:
+
+```
+workspace/comparisons/
+```
+
+You get an Excel file, Word document, and summary markdown with paired accuracy and p-value.
+
+**Four benchmark runs are already loaded** so you can compare immediately:
+
+| Run | What it is |
+|-----|------------|
+| `benchmark_openai_v1` | OpenAI host + Prompt v1 |
+| `benchmark_openai_v10` | OpenAI host + Prompt v10 |
+| `benchmark_claude_v1` | Claude host + Prompt v1 |
+| `benchmark_claude_v10` | Claude host + Prompt v10 |
+
+---
+
+## Step 7 — Save your work to GitHub
+
+After a new run or comparison:
 
 ```powershell
 git add workspace/
-git commit -m "Add eval run: <run_label>"
+git commit -m "Add eval run: <your run label>"
 git push
 ```
 
 ---
 
-## Repository layout
+## Main menu reference
+
+| Option | What it does |
+|--------|--------------|
+| **1** | Run a new evaluation |
+| **2** | Compare two runs (McNemar) |
+| **3** | List saved runs |
+| **4** | Create or refresh the Excel test-case template |
+| **5** | Change workspace folder |
+| **6** | Import an older predictions CSV into the run list |
+| **7** | Exit |
+
+---
+
+## Test-case Excel format
+
+Use sheet name **`test_cases`** (or legacy **`120_test_cases`**).
+
+**Required columns:**
+
+- `persona_id` — unique ID per row (e.g. F001)  
+- `simulated_user_message` — opening message  
+- `i.` through `viii. user input message` — eight screening answers  
+- `ix. final eligibility outcome` — correct final label for scoring  
+
+Download or copy the template from `workspace/templates/AFW_Eval_Test_Cases_Template.xlsx`.
+
+---
+
+## API hosts
+
+| Model | URL |
+|-------|-----|
+| **OpenAI** | `https://angel-flight-chatbot-app.azurewebsites.net` |
+| **Claude** | `https://angel-flight-chatbot-claude.azurewebsites.net` |
+
+Both use `POST /api/chat` and `POST /api/reset-session`.
+
+---
+
+## Where everything is stored
 
 ```
-├── README.md                 ← You are here
-├── run_eval_agent.py         ← Interactive wizard (start here)
-├── Run_Eval_Agent.bat        ← Windows double-click launcher
-├── chatbot_live_eval.py      ← Core live eval engine
-├── afw_eval_agent/           ← Wizard, template, McNemar, workspace seeding
-├── data/                     ← 120-persona gold workbook
-├── prompts/                  ← System prompt v1 and v10 text
-├── scripts/                  ← PowerShell runners (optional)
-└── workspace/                ← ALL eval outputs (commit to GitHub)
-    ├── datasets/
-    ├── templates/
-    ├── runs/
-    │   ├── manifest.json
-    │   ├── benchmark_openai_v1/
-    │   ├── benchmark_openai_v10/
-    │   ├── benchmark_claude_v1/
-    │   └── benchmark_claude_v10/
-    ├── comparisons/
-    ├── powerbi_export/
-    └── deliverables/
-```
-
-Each run folder contains predictions CSV, transcripts JSONL, accuracy JSON, failure analysis MD, and prompt improvements MD.
-
----
-
-## Pre-seeded benchmark runs
-
-| Run ID | Configuration |
-|--------|---------------|
-| `benchmark_openai_v1` | OpenAI host + System Prompt v1 (120 personas) |
-| `benchmark_openai_v10` | OpenAI host + System Prompt v10 |
-| `benchmark_claude_v1` | Claude host + System Prompt v1 |
-| `benchmark_claude_v10` | Claude host + System Prompt v10 |
-
-Use wizard menu **2** for McNemar (e.g. OpenAI v1 vs Claude v1).
-
----
-
-## API endpoints
-
-| Arm | Base URL | Chat | Reset |
-|-----|----------|------|-------|
-| **OpenAI** | `https://angel-flight-chatbot-app.azurewebsites.net` | `POST /api/chat` | `POST /api/reset-session` |
-| **Claude** | `https://angel-flight-chatbot-claude.azurewebsites.net` | `POST /api/chat` | `POST /api/reset-session` |
-
-**Leak guard:** Only `simulated_user_message` and `i`–`viii. user input message` columns are POSTed. Gold labels and `engineered_for` are never sent to the API.
-
----
-
-## Test cases Excel format
-
-| Column | Required | Sent to API? |
-|--------|----------|--------------|
-| `persona_id` | Yes | No |
-| `simulated_user_message` | Yes | Yes |
-| `i.`–`viii. user input message` | Yes | Yes |
-| `ix. final eligibility outcome` | Yes (scoring) | No |
-| `manual label` columns | Optional | No |
-
-Template: `workspace/templates/AFW_Eval_Test_Cases_Template.xlsx`  
-Sheet name: `test_cases` or `120_test_cases`
-
-| Outcome label | Code |
-|---------------|------|
-| eligible | 1 |
-| ineligible | 0 |
-| insufficient_information | 2 |
-| manual_review | 3 |
-
----
-
-## Wizard menu
-
-| # | Action |
-|---|--------|
-| 1 | Run new evaluation |
-| 2 | Compare two runs (McNemar) |
-| 3 | List saved runs |
-| 4 | Create Excel template |
-| 5 | Change workspace folder |
-| 6 | Import legacy predictions CSV |
-| 7 | Exit |
-
----
-
-## How it works
-
-```mermaid
-flowchart LR
-    subgraph repo [GitHub repo]
-        WIZ[run_eval_agent.py]
-        CORE[chatbot_live_eval.py]
-        WS[workspace/]
-    end
-    subgraph api [AFW APIs]
-        OAI[OpenAI host]
-        CLA[Claude host]
-    end
-    WIZ --> CORE
-    CORE -->|user messages only| OAI
-    CORE -->|user messages only| CLA
-    CORE --> WS
+workspace/
+├── datasets/          ← your test-case Excel files
+├── templates/         ← Excel template
+├── runs/              ← one folder per evaluation run
+├── comparisons/       ← McNemar comparison outputs
+├── powerbi_export/    ← Power BI workbook
+└── deliverables/      ← comparison reports (DOCX / XLSX)
 ```
 
 ---
 
-## Environment variables (common)
+## More detail
 
-| Variable | Purpose |
-|----------|---------|
-| `CHATBOT_WEB_BASE_URL` | OpenAI or Claude host |
-| `CHATBOT_DATASET_XLSX` | Persona workbook path |
-| `CHATBOT_OUTPUT_SUFFIX` | Unique suffix per run |
-| `CHATBOT_RESUME` | `1` to resume interrupted run |
-| `CHATBOT_REGEN_REPORTS_ONLY` | `1` to rebuild reports without API calls |
-
-Full reference: `README_HANDOFF.md`
+See `README_HANDOFF.md` for environment variables, PowerShell scripts, and advanced options.
 
 ---
 
-## Troubleshooting
+## About this project
 
-| Symptom | Fix |
-|---------|-----|
-| No runs in McNemar picker | Check `workspace/runs/manifest.json` |
-| Resume after crash | Re-run menu 1 with resume = yes |
-| SSL errors | `set CHATBOT_SSL_VERIFY=0` |
-| Re-seed benchmarks | `python -c "from afw_eval_agent.seed_workspace import seed_workspace; seed_workspace()"` |
-
----
-
-## Lineage
-
-- **Program:** UC Davis Graduate School of Management, Master of Science in Business Analytics (MSBA)  
-- **Project:** Angel Flight West Demand Management practicum — chatbot screening evaluation (2025–2026)  
-- **Storage:** This GitHub repo (`workspace/` holds all outputs)
+**UC Davis Graduate School of Management MSBA** — Angel Flight West Demand Management practicum (2025–2026).
