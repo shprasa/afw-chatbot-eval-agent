@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "f97d41af4ffd5ccbd0446606",
+  "position": {
+    "x": 24,
+    "y": 24,
+    "z": 0,
+    "height": 140,
+    "width": 280,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Metrics"
+                    }
+                  },
+                  "Property": "Avg Accuracy Pct"
+                }
+              },
+              "queryRef": "_Metrics.Avg Accuracy Pct",
+              "nativeQueryRef": "Avg Accuracy Pct"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
