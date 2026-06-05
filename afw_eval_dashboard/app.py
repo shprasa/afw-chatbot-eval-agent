@@ -394,13 +394,16 @@ def main() -> None:
         config_path=None if cloud else CONFIG,
     )
 
-    if cloud:
+    if cloud and local_ok:
+        use_github = "Local folder"
+        st.sidebar.info("Streamlit Cloud — using data committed in this repo.")
+    elif cloud and gh_settings:
         use_github = "GitHub (team live)"
-        st.sidebar.info("Streamlit Cloud — live data from GitHub.")
-    elif codespace and local_ok and not gh_settings:
+        st.sidebar.info("Streamlit Cloud — live data from GitHub API.")
+    elif codespace and local_ok:
         use_github = "Local folder"
         st.sidebar.info("Codespace — using `workspace/powerbi_export/csv` in this repo.")
-    elif gh_settings and local_ok:
+    elif gh_settings and local_ok and not cloud:
         use_github = st.sidebar.radio(
             "Data source",
             ["GitHub (team live)", "Local folder"],
@@ -470,8 +473,8 @@ def main() -> None:
     st.sidebar.markdown("---")
     if cloud:
         st.sidebar.markdown(
-            "**Team URL:** https://afw-chatbot-eval.streamlit.app\n\n"
-            "Data refreshes from GitHub every 20s after the agent exports."
+            "**Repo:** github.com/shprasa/afw-chatbot-eval-agent (public)\n\n"
+            "Data refreshes every 20s after agent exports are pushed."
         )
     elif codespace:
         st.sidebar.markdown(
