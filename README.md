@@ -2,7 +2,7 @@
 
 **Plug-and-play handoff package** for running live screening evaluations against Angel Flight West (AFW) chatbot APIs, scoring accuracy against gold labels, generating failure/prompt reports, and comparing two model runs with **McNemar's test**.
 
-Built for the **UCLA Anderson Demand Management practicum** (New Horizons / UCD partnership). **This GitHub repo is the single source of truth** — agent code, test cases, predictions, transcripts, reports, and McNemar comparisons all live here under `workspace/`.
+Built for the **UC Davis Graduate School of Management MSBA** Angel Flight West **Demand Management practicum**. **This GitHub repo is the single source of truth** — agent code, test cases, predictions, transcripts, reports, and McNemar comparisons all live here under `workspace/`.
 
 ---
 
@@ -201,6 +201,6 @@ Full reference: `README_HANDOFF.md`
 
 ## Lineage
 
-- **Project:** Angel Flight West Demand Management — chatbot screening evaluation  
-- **Partnership:** UCD / UCLA Anderson practicum (2025–2026)  
+- **Program:** UC Davis Graduate School of Management, Master of Science in Business Analytics (MSBA)  
+- **Project:** Angel Flight West Demand Management practicum — chatbot screening evaluation (2025–2026)  
 - **Storage:** This GitHub repo (`workspace/` holds all outputs)
