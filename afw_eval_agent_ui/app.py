@@ -43,7 +43,7 @@ def _workspace() -> Workspace:
 def _save_to_github(ws: Workspace) -> None:
     creds = resolve_credentials(secrets=getattr(st, "secrets", None))
     if not creds:
-        st.error("Add `GITHUB_TOKEN` to Streamlit secrets to save to the repo.")
+        st.error("Unable to save results. Contact the AFW platform administrator.")
         return
     with st.spinner("Pushing workspace files to GitHub…"):
         result = publish_workspace(ws, message="Eval agent: save workspace to repo")
