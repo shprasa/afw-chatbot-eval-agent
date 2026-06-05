@@ -1449,35 +1449,35 @@
     ],
     "relationships": [
       {
-        "name": "95fd0743-4e97-415d-982a-3f074f01a614",
+        "name": "7cec00cc-41d3-44b0-b201-c94a9948ab45",
         "fromTable": "Persona Results",
         "fromColumn": "Run ID",
         "toTable": "Evaluation Runs",
         "toColumn": "Run ID"
       },
       {
-        "name": "51cb87f6-43be-4598-b300-ed90d81d30bc",
+        "name": "eafc95da-3b88-4891-b422-8e33bdd51b09",
         "fromTable": "Persona Results",
         "fromColumn": "Persona ID",
         "toTable": "User Test Cases",
         "toColumn": "persona_id"
       },
       {
-        "name": "1c40a19b-36be-4f9c-b2fd-7b90d3208d97",
+        "name": "09cb7359-01f5-4726-9fb8-c74365229827",
         "fromTable": "Turn Details",
         "fromColumn": "Run ID",
         "toTable": "Evaluation Runs",
         "toColumn": "Run ID"
       },
       {
-        "name": "b69176d9-581f-4373-955f-16f0a89a3f6b",
+        "name": "bcba5be5-7ca1-485a-87d2-20cbd8a83ec6",
         "fromTable": "Turn Details",
         "fromColumn": "Persona ID",
         "toTable": "User Test Cases",
         "toColumn": "persona_id"
       },
       {
-        "name": "f230ab20-9540-4d78-8ebe-6b003468dfb3",
+        "name": "f245fd21-6b6c-47e8-a020-be117bf3f0fa",
         "fromTable": "Run Summary By Class",
         "fromColumn": "Run ID",
         "toTable": "Evaluation Runs",
