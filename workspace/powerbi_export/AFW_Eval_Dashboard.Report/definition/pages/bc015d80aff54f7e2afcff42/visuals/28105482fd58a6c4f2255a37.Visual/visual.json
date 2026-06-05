@@ -1,0 +1,122 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "28105482fd58a6c4f2255a37",
+  "position": {
+    "x": 24,
+    "y": 24,
+    "z": 0,
+    "height": 660,
+    "width": 1232,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Comparison File"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Comparison File",
+              "nativeQueryRef": "Comparison File"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Group A"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Group A",
+              "nativeQueryRef": "Group A"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Group B"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Group B",
+              "nativeQueryRef": "Group B"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Accuracy A Pct"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Accuracy A Pct",
+              "nativeQueryRef": "Accuracy A Pct"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Accuracy B Pct"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Accuracy B Pct",
+              "nativeQueryRef": "Accuracy B Pct"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Mcnemar P Value"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Mcnemar P Value",
+              "nativeQueryRef": "Mcnemar P Value"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "McNemar Comparisons"
+                    }
+                  },
+                  "Property": "Significant At 0 05"
+                }
+              },
+              "queryRef": "McNemar Comparisons.Significant At 0 05",
+              "nativeQueryRef": "Significant At 0 05"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
