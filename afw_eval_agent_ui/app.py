@@ -14,7 +14,7 @@ from afw_eval_agent.config import AGENT_ROOT, Workspace, default_workspace
 from afw_eval_agent.github_publish import publish_workspace, resolve_credentials
 from afw_eval_agent.mcnemar import compute_mcnemar, write_comparison_outputs
 from afw_eval_agent.powerbi_export import export_powerbi_data
-from afw_eval_agent.registry import list_models, list_prompt_labels
+from afw_eval_agent.registry import add_model, add_prompt_label, list_models, list_prompt_labels
 from afw_eval_agent.runner import run_evaluation
 from afw_eval_agent.template import detect_sheet, validate_workbook
 from afw_eval_agent.wizard import bootstrap_workspace
@@ -85,17 +85,92 @@ def render_agent() -> None:
                 st.warning("Workbook validation issues: " + "; ".join(issues[:3]))
 
             models = list_models()
+            model_keys = list(models.keys())
             model_key = st.selectbox(
                 "Model host",
-                list(models.keys()),
+                model_keys,
                 format_func=lambda k: models[k]["display"],
+                key="eval_model_host",
             )
+            with st.expander("Add new model host"):
+                st.caption(
+                    "Register another chatbot API endpoint. "
+                    "The prompt must already be deployed on that host."
+                )
+                new_model_display = st.text_input(
+                    "Display name",
+                    placeholder="e.g. OpenAI staging host",
+                    key="new_model_display",
+                )
+                new_model_url = st.text_input(
+                    "Base URL",
+                    placeholder="https://my-host.azurewebsites.net",
+                    key="new_model_url",
+                )
+                new_model_backend = st.selectbox(
+                    "Backend type",
+                    ["openai", "claude"],
+                    key="new_model_backend",
+                )
+                if st.button("Save model host", key="save_model_host"):
+                    if not new_model_display.strip() or not new_model_url.strip():
+                        st.error("Display name and Base URL are required.")
+                    else:
+                        try:
+                            added_key = add_model(
+                                display=new_model_display.strip(),
+                                base_url=new_model_url.strip(),
+                                backend=new_model_backend,
+                            )
+                            st.session_state["eval_model_host"] = added_key
+                            st.success(
+                                f"Added model host **{new_model_display.strip()}**. "
+                                "Click **Save to GitHub repo** after your run to share with the team."
+                            )
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
+
             prompts = list_prompt_labels()
+            prompt_keys = list(prompts.keys())
             prompt_key = st.selectbox(
                 "Prompt label",
-                list(prompts.keys()),
+                prompt_keys,
                 format_func=lambda k: prompts[k]["label"],
+                key="eval_prompt_label",
             )
+            with st.expander("Add new prompt label"):
+                st.caption(
+                    "Tag which system prompt version is live on the API backend. "
+                    "You do not upload prompt text here."
+                )
+                new_prompt_label = st.text_input(
+                    "Label text",
+                    placeholder="e.g. System Prompt v12 — March deploy",
+                    key="new_prompt_label",
+                )
+                new_prompt_notes = st.text_input(
+                    "Notes (optional)",
+                    placeholder="Deploy date, ticket, etc.",
+                    key="new_prompt_notes",
+                )
+                if st.button("Save prompt label", key="save_prompt_label"):
+                    if not new_prompt_label.strip():
+                        st.error("Label text is required.")
+                    else:
+                        try:
+                            added_key = add_prompt_label(
+                                label=new_prompt_label.strip(),
+                                notes=new_prompt_notes.strip(),
+                            )
+                            st.session_state["eval_prompt_label"] = added_key
+                            st.success(
+                                f"Added prompt label **{new_prompt_label.strip()}**. "
+                                "Click **Save to GitHub repo** after your run to share with the team."
+                            )
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
             run_label = st.text_input("Run label", value="eval_run")
             c1, c2, c3 = st.columns(3)
             resume = c1.checkbox("Resume incomplete run")
