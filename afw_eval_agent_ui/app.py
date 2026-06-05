@@ -16,7 +16,7 @@ from afw_eval_agent.template import create_template
 from afw_eval_agent.mcnemar import compute_mcnemar, write_comparison_outputs
 from afw_eval_agent.powerbi_export import export_powerbi_data
 from afw_eval_agent.registry import add_model, add_prompt_label, list_models, list_prompt_labels
-from afw_eval_agent.runner import run_evaluation
+from afw_eval_agent.runner import run_evaluation_streaming
 from afw_eval_agent.template import detect_sheet, validate_workbook
 from afw_eval_agent.wizard import bootstrap_workspace
 from afw_eval_dashboard.theme import BRAND, inject_css
@@ -251,9 +251,17 @@ def render_agent() -> None:
                 if not (AGENT_ROOT / "chatbot_live_eval.py").is_file():
                     st.error("chatbot_live_eval.py not found in repo root.")
                 else:
+                    progress_bar = st.progress(0.0, text="Starting evaluation…")
+                    progress_caption = st.empty()
+                    st.markdown("**Live session log**")
+                    log_box = st.empty()
+                    log_lines: list[str] = []
+
                     with st.status("Running live evaluation…", expanded=True) as status:
                         try:
-                            entry = run_evaluation(
+                            entry = None
+                            total_personas = 0
+                            for event in run_evaluation_streaming(
                                 workspace=ws,
                                 model_key=model_key,
                                 prompt_key=prompt_key,
@@ -265,6 +273,45 @@ def render_agent() -> None:
                                 resume=resume,
                                 eval_limit=int(limit) if limit else None,
                                 parallel_workers=int(workers),
+                            ):
+                                if event["type"] == "start":
+                                    total_personas = event["total"]
+                                    progress_caption.caption(
+                                        f"0 / {total_personas} personas complete "
+                                        f"({event['remaining']} remaining)"
+                                    )
+                                elif event["type"] == "progress":
+                                    total = max(event["total"], 1)
+                                    completed = event["completed"]
+                                    remaining = event["remaining"]
+                                    progress_bar.progress(
+                                        completed / total,
+                                        text=f"{completed} / {total} personas complete",
+                                    )
+                                    progress_caption.caption(
+                                        f"**{completed}** completed · "
+                                        f"**{remaining}** remaining · "
+                                        f"**{total}** total"
+                                    )
+                                elif event["type"] == "log":
+                                    log_lines.append(event["line"])
+                                    log_box.code(
+                                        "\n".join(log_lines[-150:]),
+                                        language=None,
+                                    )
+                                elif event["type"] == "complete":
+                                    entry = event["entry"]
+
+                            if entry is None:
+                                raise RuntimeError("Evaluation finished without saving a run.")
+
+                            progress_bar.progress(
+                                1.0,
+                                text=f"{total_personas} / {total_personas} personas complete",
+                            )
+                            progress_caption.caption(
+                                f"**{total_personas}** completed · **0** remaining · "
+                                f"**{total_personas}** total"
                             )
                             status.update(label="Evaluation complete", state="complete")
                             st.session_state["last_run_id"] = entry["run_id"]
