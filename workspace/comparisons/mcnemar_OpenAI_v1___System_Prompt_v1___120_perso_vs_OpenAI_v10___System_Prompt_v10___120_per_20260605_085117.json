@@ -1,0 +1,32 @@
+{
+  "name_a": "OpenAI v1 | System Prompt v1 | 120 personas",
+  "name_b": "OpenAI v10 | System Prompt v10 | 120 personas",
+  "pred_a": "workspace/runs/benchmark_openai_v1/chatbot_live_predictions_original_style_short_openai.csv",
+  "pred_b": "workspace/runs/benchmark_openai_v10/chatbot_live_predictions_original_style_short_openai_v10.csv",
+  "n_paired": 120,
+  "accuracy_a": 0.5666666666666667,
+  "accuracy_b": 0.6166666666666667,
+  "ate_b_minus_a_pp": 5.000000000000004,
+  "a_only_correct": 13,
+  "b_only_correct": 19,
+  "both_correct": 55,
+  "both_wrong": 33,
+  "discordant": 32,
+  "mcnemar_p_value": 0.37708558747544885,
+  "significant_at_0_05": false,
+  "created_utc": "2026-06-05T08:51:17.957210+00:00",
+  "mcnemar_table": {
+    "rows": "OpenAI v1 | System Prompt v1 | 120 personas correct",
+    "cols": "OpenAI v10 | System Prompt v10 | 120 personas correct",
+    "cells": [
+      [
+        55,
+        19
+      ],
+      [
+        13,
+        33
+      ]
+    ]
+  }
+}
