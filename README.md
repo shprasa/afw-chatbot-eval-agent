@@ -4,7 +4,7 @@
 
 This program tests the Angel Flight West (AFW) screening chatbot. It:
 
-1. Reads synthetic patient conversations from an **Excel file** on your computer  
+1. Reads fake patient conversations from an **Excel file** on your computer  
 2. Sends those messages to the live AFW chatbot website (one message at a time)  
 3. Compares the chatbot's answers to the correct answers in your Excel file  
 4. Saves reports in a folder called `workspace`
@@ -336,7 +336,42 @@ Type **`9`** at the main menu to list all servers and prompt labels.
 
 ---
 
-# PART F — SAVE YOUR WORK BACK TO GITHUB (optional)
+# PART F — POWER BI DASHBOARD (connects to this repo)
+
+The agent **automatically updates** clean Power BI files after every evaluation run.
+
+**Data location:**
+
+```
+workspace/powerbi_export/
+  AFW_PowerBI_Data.xlsx     ← open this in Power BI Desktop
+  csv/                      ← or connect Power BI to this folder
+  POWERBI_Setup_Guide.md    ← full dashboard build instructions
+```
+
+**What is inside the Excel file (clean labels, no underscores):**
+
+| Sheet | Contents |
+|-------|----------|
+| User Test Cases | Original Excel columns preserved exactly from the source file |
+| Evaluation Runs | One row per agent run (model, prompt label, accuracy) |
+| Persona Results | Truth vs predicted labels per persona (Eligible, not eligible) |
+| Turn Details | Full conversation text per turn |
+| Run Summary By Class | Recall by outcome class |
+| McNemar Comparisons | Statistical comparisons between runs |
+
+**To refresh Power BI after new agent runs:**
+
+1. `git pull` (get latest repo data)  
+2. Open Power BI Desktop → **Refresh**  
+3. Or run agent menu **10** to regenerate export manually  
+
+**Full step-by-step** to build the dashboard (relationships, visuals, pages):  
+read `workspace/powerbi_export/POWERBI_Setup_Guide.md`
+
+---
+
+# PART G — SAVE YOUR WORK BACK TO GITHUB (optional)
 
 If you use git and want to upload new runs for your team:
 
