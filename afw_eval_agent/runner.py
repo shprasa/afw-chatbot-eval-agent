@@ -182,10 +182,9 @@ def run_evaluation(
     )
     try:
         pbi = export_powerbi_data(workspace)
-        print(f"Power BI data updated: {pbi}")
-        print("Live dashboard: http://localhost:8502 (Run_AFW_Live_Dashboard.bat)")
+        print(f"Dashboard export updated: {pbi}")
     except Exception as exc:
-        print(f"Warning: Power BI export failed: {exc}")
+        print(f"Warning: dashboard export failed: {exc}")
     return entry
 
 
