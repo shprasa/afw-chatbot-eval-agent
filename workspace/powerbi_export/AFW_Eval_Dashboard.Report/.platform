@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "AFW_Eval_Dashboard Report"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "aa0c041f-77a8-4c51-8284-d64a04ea688d"
+  }
+}
