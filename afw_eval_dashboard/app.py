@@ -189,7 +189,10 @@ def page_run_overview(runs: pd.DataFrame, personas: pd.DataFrame) -> None:
 
 
 def page_accuracy_by_class(summary: pd.DataFrame, runs: pd.DataFrame) -> None:
-    hero("Accuracy by Class", "Per-class recall matrix — Power BI guide § Accuracy by class")
+    hero(
+        "Accuracy by Class",
+        "Recall for each truth outcome class, by evaluation arm",
+    )
 
     if summary.empty:
         st.info("No per-class summary available.")
