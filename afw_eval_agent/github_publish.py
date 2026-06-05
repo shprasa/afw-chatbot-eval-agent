@@ -174,8 +174,9 @@ def publish_workspace(
         else:
             skipped.append(repo_rel)
 
-    # App code refresh so dashboard picks up changes
+    # Registry + app code refresh
     for rel in (
+        "config/agent_registry.json",
         "afw_eval_dashboard/app.py",
         "afw_eval_dashboard/analytics.py",
         "afw_eval_dashboard/theme.py",
