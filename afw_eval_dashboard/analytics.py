@@ -178,7 +178,7 @@ def executive_insights(
         if not pairs.empty:
             top = pairs.iloc[0]
             tips.append(
-                f"<strong>Top error pattern:</strong> Gold <em>{top['Truth Label']}</em> "
+                f"<strong>Top error pattern:</strong> Truth <em>{top['Truth Label']}</em> "
                 f"misclassified as <em>{top['Predicted Label']}</em> "
                 f"({int(top['Errors'])} personas)."
             )
