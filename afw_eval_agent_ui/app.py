@@ -22,7 +22,11 @@ from afw_eval_agent.background_job import (
     sync_job_state,
 )
 from afw_eval_agent.config import AGENT_ROOT, Workspace, default_workspace
-from afw_eval_agent.github_publish import publish_file, publish_workspace, repo_relative_path, resolve_credentials
+from afw_eval_agent.github_publish import (
+    credentials_as_env,
+    resolve_credentials,
+    try_publish_workspace,
+)
 from afw_eval_agent.mcnemar import compute_mcnemar, write_comparison_outputs
 from afw_eval_agent.powerbi_export import export_powerbi_data
 from afw_eval_agent.registry import add_model, add_prompt_label, list_models, list_prompt_labels
@@ -68,15 +72,6 @@ def _save_dataset_upload(ws: Workspace, uploaded) -> Path:
     return dest
 
 
-def _push_dataset_to_repo(ws: Workspace, local: Path) -> bool:
-    return publish_file(
-        local,
-        repo_relative_path(ws, local),
-        message="Eval agent: upload persona workbook",
-        secrets=getattr(st, "secrets", None),
-    )
-
-
 def _owner_email() -> str:
     return st.session_state.get("eval_owner_email", "").strip()
 
@@ -91,15 +86,12 @@ def _try_normalize_owner_email() -> str | None:
         return None
 
 
-def _save_to_github(ws: Workspace) -> None:
-    creds = resolve_credentials(secrets=getattr(st, "secrets", None))
-    if not creds:
-        st.error("Unable to save results. Contact the AFW platform administrator.")
-        return
-    with st.spinner("Pushing workspace files to GitHub…"):
-        result = publish_workspace(ws, message="Eval agent: save workspace to repo")
-    st.success(f"Saved **{result['count']}** files to [{result['repo']}]({result['url']}).")
-    st.caption("Dashboard refreshes within ~20 minutes (or reload the page).")
+def _github_env() -> dict[str, str]:
+    return credentials_as_env(resolve_credentials(secrets=getattr(st, "secrets", None)))
+
+
+def _auto_publish(ws: Workspace, message: str) -> dict:
+    return try_publish_workspace(ws, message=message, secrets=getattr(st, "secrets", None))
 
 
 def _render_active_job_panel(ws: Workspace, owner_email: str) -> bool:
@@ -124,6 +116,8 @@ def _render_active_job_panel(ws: Workspace, owner_email: str) -> bool:
             )
             if state.get("email_status"):
                 st.caption(state["email_status"])
+            if state.get("github_publish_status"):
+                st.caption(state["github_publish_status"])
             st.session_state["last_run_id"] = state.get("result_run_id")
         elif status == "cancelled":
             st.warning(f"**Cancelled:** {state.get('error', 'Stopped by user.')}")
@@ -258,9 +252,10 @@ def render_agent() -> None:
             if issues:
                 st.error("Workbook validation failed: " + "; ".join(issues[:5]))
             else:
-                if _push_dataset_to_repo(ws, dest):
+                pub = _auto_publish(ws, f"Eval agent: upload persona workbook {uploaded_wb.name}")
+                if pub["ok"]:
                     st.success(
-                        f"Saved **`{uploaded_wb.name}`** to the repo. "
+                        f"Saved **`{uploaded_wb.name}`** and synced to the team repo. "
                         "It is now selected in the dropdown below — confirm before starting."
                     )
                 else:
@@ -268,6 +263,7 @@ def render_agent() -> None:
                         f"Saved **`{uploaded_wb.name}`** locally. "
                         "It is now selected in the dropdown below — confirm before starting."
                     )
+                    st.caption(f"Repo sync note: {pub['error']}")
                 st.session_state["eval_dataset_pick"] = uploaded_wb.name
                 st.rerun()
 
@@ -327,10 +323,11 @@ def render_agent() -> None:
                                 backend="",
                             )
                             st.session_state["eval_model_host"] = added_key
-                            st.success(
-                                f"Added model host **{new_model_display.strip()}**. "
-                                "Click **Save to GitHub repo** after your run to share with the team."
-                            )
+                            pub = _auto_publish(ws, "Eval agent: update model registry")
+                            msg = f"Added model host **{new_model_display.strip()}**."
+                            if pub["ok"]:
+                                msg += " Synced to the team repo."
+                            st.success(msg)
                             st.rerun()
                         except ValueError as exc:
                             st.error(str(exc))
@@ -368,10 +365,11 @@ def render_agent() -> None:
                                 notes=new_prompt_notes.strip(),
                             )
                             st.session_state["eval_prompt_label"] = added_key
-                            st.success(
-                                f"Added prompt label **{new_prompt_label.strip()}**. "
-                                "Click **Save to GitHub repo** after your run to share with the team."
-                            )
+                            pub = _auto_publish(ws, "Eval agent: update prompt registry")
+                            msg = f"Added prompt label **{new_prompt_label.strip()}**."
+                            if pub["ok"]:
+                                msg += " Synced to the team repo."
+                            st.success(msg)
                             st.rerun()
                         except ValueError as exc:
                             st.error(str(exc))
@@ -422,9 +420,10 @@ def render_agent() -> None:
                 (load_job_state(ws, owner_email) or {}) if owner_email else {}
             ).get("result_run_id")
             if last_id:
-                st.info(f"Last completed run: **{last_id}**")
-                if st.button("Save this eval to GitHub repo"):
-                    _save_to_github(ws)
+                st.info(
+                    f"Last completed run: **{last_id}** — "
+                    "outputs are pushed to the team repo automatically when each run finishes."
+                )
 
     with tab_mcn:
         st.subheader("Compare two runs (McNemar)")
@@ -452,12 +451,18 @@ def render_agent() -> None:
                     )
                     write_comparison_outputs(stats, ws.comparisons)
                     export_powerbi_data(ws)
+                pub = _auto_publish(ws, "Eval agent: McNemar comparison")
                 st.success("McNemar outputs saved to `workspace/comparisons/`.")
+                if pub["ok"]:
+                    st.caption(f"Synced {pub['count']} files to the team repo.")
+                else:
+                    st.caption(f"Repo sync note: {pub['error']}")
                 st.session_state["last_mcnemar"] = f"{labels[idx_a]} vs {labels[idx_b]}"
             if st.session_state.get("last_mcnemar"):
-                st.info(f"Last comparison: **{st.session_state['last_mcnemar']}**")
-                if st.button("Save McNemar results to GitHub repo"):
-                    _save_to_github(ws)
+                st.info(
+                    f"Last comparison: **{st.session_state['last_mcnemar']}** — "
+                    "synced to the team repo automatically."
+                )
 
     with tab_runs:
         runs = ws.load_manifest()
@@ -471,11 +476,14 @@ def render_agent() -> None:
                     st.write(f"**Prompt:** {r.get('prompt_label', '')}")
                     st.write(f"**Predictions:** `{r.get('predictions_csv', '')}`")
 
-        if st.button("Refresh dashboard export only"):
+        if st.button("Refresh dashboard export"):
             export_powerbi_data(ws)
-            st.success("Export refreshed.")
-        if st.button("Save all workspace outputs to GitHub repo"):
-            _save_to_github(ws)
+            pub = _auto_publish(ws, "Eval agent: refresh dashboard export")
+            if pub["ok"]:
+                st.success(f"Export refreshed and synced ({pub['count']} files).")
+            else:
+                st.success("Export refreshed locally.")
+                st.caption(f"Repo sync note: {pub['error']}")
 
 
 def main() -> None:
