@@ -115,7 +115,7 @@ def load_tables_github(settings_key: str, use_config_file: bool) -> dict[str, pd
     return load_tables_from_github(settings)
 
 
-# ── Pages (Power BI guide alignment) ─────────────────────────────────────────
+# ── Dashboard pages ──────────────────────────────────────────────────────────
 
 def page_run_overview(runs: pd.DataFrame, personas: pd.DataFrame) -> None:
     hero("Run Overview", "Live metrics — updates when new evals are saved to the repo")
@@ -251,7 +251,10 @@ def page_accuracy_by_class(summary: pd.DataFrame, runs: pd.DataFrame) -> None:
 
 
 def page_confusion(personas: pd.DataFrame) -> None:
-    hero("Confusion Analysis", "Truth × predicted outcome — Power BI guide § Confusion")
+    hero(
+        "Confusion Analysis",
+        "Truth vs predicted final outcome for each evaluation arm",
+    )
 
     if personas.empty:
         st.info("No persona results.")
@@ -624,7 +627,7 @@ def render_dashboard() -> None:
         "Filter arms",
         run_options,
         default=run_options,
-        help="Power BI guide: slicer on arm / display name",
+        help="Show only selected evaluation arms",
     )
     selected_ids = (
         runs[runs["Display Name"].isin(selected_labels)]["Run ID"].tolist()
