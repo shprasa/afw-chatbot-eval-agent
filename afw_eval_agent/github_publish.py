@@ -184,6 +184,20 @@ def publish_file(
     )
 
 
+def credentials_as_env(creds: dict[str, str] | None) -> dict[str, str]:
+    """Serialize resolved credentials for subprocess / background-job environment."""
+    if not creds:
+        return {}
+    env = {"GITHUB_TOKEN": creds["token"]}
+    if creds.get("owner"):
+        env["GITHUB_OWNER"] = creds["owner"]
+    if creds.get("repo"):
+        env["GITHUB_REPO"] = creds["repo"]
+    if creds.get("branch"):
+        env["GITHUB_BRANCH"] = creds["branch"]
+    return env
+
+
 def publish_workspace(
     ws: Workspace,
     *,
@@ -220,6 +234,7 @@ def publish_workspace(
         "afw_eval_agent_ui/app.py",
         "afw_eval_agent/background_job.py",
         "afw_eval_agent/notify.py",
+        "afw_eval_agent/github_publish.py",
         "streamlit_app.py",
     ):
         local = AGENT_ROOT / rel
@@ -234,3 +249,35 @@ def publish_workspace(
         "skipped": skipped,
         "count": len(pushed),
     }
+
+
+def try_publish_workspace(
+    ws: Workspace,
+    *,
+    message: str = "Eval agent: auto-sync workspace",
+    secrets: Any | None = None,
+    config_path: Path | None = None,
+) -> dict[str, Any]:
+    """Push workspace to GitHub; never raises (for automatic post-run sync)."""
+    try:
+        result = publish_workspace(
+            ws,
+            message=message,
+            secrets=secrets,
+            config_path=config_path,
+        )
+        return {
+            "ok": True,
+            "count": result["count"],
+            "url": result["url"],
+            "repo": result["repo"],
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "count": 0,
+            "url": None,
+            "repo": None,
+            "error": str(exc),
+        }
