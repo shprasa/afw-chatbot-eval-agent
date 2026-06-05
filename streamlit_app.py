@@ -14,8 +14,19 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-dash = st.Page("afw_eval_dashboard/app.py", title="Dashboard", icon="📊", default=True)
-agent = st.Page("afw_eval_agent_ui/app.py", title="Eval Agent", icon="🛠️")
+dash = st.Page(
+    "afw_eval_dashboard/app.py",
+    title="Dashboard",
+    icon="📊",
+    default=True,
+    url_path="Dashboard",
+)
+agent = st.Page(
+    "afw_eval_agent_ui/app.py",
+    title="Eval Agent",
+    icon="🛠️",
+    url_path="Eval_Agent",
+)
 
 nav = st.navigation([dash, agent])
 nav.run()
