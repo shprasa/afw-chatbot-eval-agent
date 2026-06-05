@@ -1,0 +1,94 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "0e12319181ee0753f7384ab4",
+  "position": {
+    "x": 24,
+    "y": 150,
+    "z": 0,
+    "height": 260,
+    "width": 1232,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Persona Results"
+                    }
+                  },
+                  "Property": "Display Name"
+                }
+              },
+              "queryRef": "Persona Results.Display Name",
+              "nativeQueryRef": "Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Persona Results"
+                    }
+                  },
+                  "Property": "Persona ID"
+                }
+              },
+              "queryRef": "Persona Results.Persona ID",
+              "nativeQueryRef": "Persona ID"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Persona Results"
+                    }
+                  },
+                  "Property": "Truth Label"
+                }
+              },
+              "queryRef": "Persona Results.Truth Label",
+              "nativeQueryRef": "Truth Label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Persona Results"
+                    }
+                  },
+                  "Property": "Predicted Label"
+                }
+              },
+              "queryRef": "Persona Results.Predicted Label",
+              "nativeQueryRef": "Predicted Label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Persona Results"
+                    }
+                  },
+                  "Property": "Correct Match"
+                }
+              },
+              "queryRef": "Persona Results.Correct Match",
+              "nativeQueryRef": "Correct Match"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
