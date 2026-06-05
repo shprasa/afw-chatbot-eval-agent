@@ -7,6 +7,8 @@
 | **Dashboard** | Live charts from `workspace/powerbi_export/csv/` |
 | **Eval Agent** | Run evals, McNemar tests, save to GitHub |
 
+**Team instructions:** share **[EXTERNAL_TEAM_GUIDE.md](EXTERNAL_TEAM_GUIDE.md)** with every external user.
+
 ---
 
 ## Deploy on Streamlit Cloud
@@ -40,3 +42,5 @@ GITHUB_BRANCH = "main"
 ```cmd
 python push_streamlit_dashboard.py
 ```
+
+Pushes app code, README, **EXTERNAL_TEAM_GUIDE.md**, and latest CSV exports.
