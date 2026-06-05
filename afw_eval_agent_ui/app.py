@@ -1,8 +1,8 @@
 """Live Streamlit front-end for the AFW Screening Chatbot Evaluation Agent."""
 from __future__ import annotations
 
-import re
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import streamlit as st
@@ -11,14 +11,21 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from afw_eval_agent.background_job import (
+    job_is_active,
+    job_log_path,
+    job_state_path,
+    load_job_state,
+    read_job_log_tail,
+    start_background_evaluation,
+    sync_job_state,
+)
 from afw_eval_agent.config import AGENT_ROOT, Workspace, default_workspace
 from afw_eval_agent.github_publish import publish_file, publish_workspace, repo_relative_path, resolve_credentials
-from afw_eval_agent.template import create_template
 from afw_eval_agent.mcnemar import compute_mcnemar, write_comparison_outputs
 from afw_eval_agent.powerbi_export import export_powerbi_data
 from afw_eval_agent.registry import add_model, add_prompt_label, list_models, list_prompt_labels
-from afw_eval_agent.runner import run_evaluation_streaming
-from afw_eval_agent.template import detect_sheet, validate_workbook
+from afw_eval_agent.template import create_template, detect_sheet, validate_workbook
 from afw_eval_agent.wizard import bootstrap_workspace
 from afw_eval_dashboard.theme import BRAND, inject_css
 
@@ -69,19 +76,10 @@ def _push_dataset_to_repo(ws: Workspace, local: Path) -> bool:
     )
 
 
-_PERSONA_START_RE = re.compile(r"persona (\S+) session")
-_PERSONA_DONE_RE = re.compile(r"\] (\S+) truth=")
-
-
-def _inflight_from_log(log_lines: list[str]) -> int:
-    started: set[str] = set()
-    done: set[str] = set()
-    for line in log_lines:
-        for match in _PERSONA_START_RE.finditer(line):
-            started.add(match.group(1))
-        for match in _PERSONA_DONE_RE.finditer(line):
-            done.add(match.group(1))
-    return len(started - done)
+def _clear_job_files(ws: Workspace) -> None:
+    for path in (job_state_path(ws), job_log_path(ws)):
+        if path.is_file():
+            path.unlink()
 
 
 def _save_to_github(ws: Workspace) -> None:
@@ -93,6 +91,72 @@ def _save_to_github(ws: Workspace) -> None:
         result = publish_workspace(ws, message="Eval agent: save workspace to repo")
     st.success(f"Saved **{result['count']}** files to [{result['repo']}]({result['url']}).")
     st.caption("Dashboard refreshes within ~20 minutes (or reload the page).")
+
+
+def _render_active_job_panel(ws: Workspace) -> bool:
+    state = sync_job_state(ws)
+    if not state:
+        return False
+
+    status = state.get("status", "")
+    with st.container(border=True):
+        st.markdown("### Evaluation status")
+        if status in {"pending", "running"}:
+            st.warning(
+                f"**In progress:** {state.get('run_label', 'eval')} · "
+                f"{state.get('dataset', '')} · "
+                "You can switch tabs or pages — this run continues in the background."
+            )
+        elif status == "completed":
+            st.success(
+                f"**Completed:** `{state.get('result_run_id', '')}` · "
+                f"{state.get('run_label', '')}"
+            )
+            if state.get("email_status"):
+                st.caption(state["email_status"])
+            st.session_state["last_run_id"] = state.get("result_run_id")
+        elif status == "failed":
+            st.error(f"**Failed:** {state.get('error', 'Unknown error')}")
+            if state.get("email_status"):
+                st.caption(state["email_status"])
+
+        total = max(int(state.get("total") or 0), 1)
+        completed = min(int(state.get("completed") or 0), total)
+        remaining = max(int(state.get("remaining") or 0), 0)
+        in_flight = int(state.get("in_flight") or 0)
+
+        if status in {"pending", "running", "completed"}:
+            st.progress(
+                completed / total if status != "completed" else 1.0,
+                text=f"{completed} / {total} personas complete",
+            )
+            bits = [f"**{completed}** completed", f"**{remaining}** remaining", f"**{total}** total"]
+            if in_flight and status in {"pending", "running"}:
+                bits.insert(1, f"**{in_flight}** in progress")
+            hint = ""
+            if status in {"pending", "running"} and completed == 0 and in_flight:
+                hint = (
+                    " First completion often takes **1–3 minutes** "
+                    "(multiple API turns per persona)."
+                )
+            st.caption(" · ".join(bits) + hint)
+
+        st.markdown("**Live session log**")
+        log_text = read_job_log_tail(ws)
+        st.code(log_text or "Waiting for log output…", language=None)
+
+        if status in {"completed", "failed"}:
+            if st.button("Clear evaluation status", key="clear_job_status"):
+                _clear_job_files(ws)
+                st.rerun()
+
+    return job_is_active(state)
+
+
+@st.fragment(run_every=timedelta(seconds=5))
+def _poll_active_job(ws: Workspace) -> None:
+    if job_is_active(sync_job_state(ws)):
+        _render_active_job_panel(ws)
 
 
 def render_agent() -> None:
@@ -115,10 +179,25 @@ def render_agent() -> None:
     tab_run, tab_mcn, tab_runs = st.tabs(["Run evaluation", "McNemar comparison", "Saved runs"])
 
     with tab_run:
+        job_running = _render_active_job_panel(ws)
+        if job_running:
+            _poll_active_job(ws)
+
         st.subheader("New evaluation run")
         template_path = _ensure_template(ws)
 
         st.markdown("**Persona workbook**")
+        st.info(
+            "**Using your own workbook — required steps**\n\n"
+            "1. Download the template and fill in your personas.\n"
+            "2. Upload your `.xlsx` file.\n"
+            "3. Click **Save uploaded workbook** and wait for confirmation.\n"
+            "4. **Select your saved workbook** from the **Persona workbook** dropdown below.\n"
+            "5. Only then click **Start evaluation**.\n\n"
+            "If you skip step 3 or 4, the run will use whichever workbook is currently "
+            "selected in the dropdown — not the file you just uploaded."
+        )
+
         dl_col, _ = st.columns([1, 2])
         with dl_col:
             st.download_button(
@@ -143,12 +222,13 @@ def render_agent() -> None:
             else:
                 if _push_dataset_to_repo(ws, dest):
                     st.success(
-                        f"Saved **`{uploaded_wb.name}`** to the repo and selected it for your next run."
+                        f"Saved **`{uploaded_wb.name}`** to the repo. "
+                        "It is now selected in the dropdown below — confirm before starting."
                     )
                 else:
                     st.success(
                         f"Saved **`{uploaded_wb.name}`** locally. "
-                        "Click **Save to GitHub repo** to share it with the team."
+                        "It is now selected in the dropdown below — confirm before starting."
                     )
                 st.session_state["eval_dataset_pick"] = uploaded_wb.name
                 st.rerun()
@@ -157,14 +237,14 @@ def render_agent() -> None:
         if not datasets:
             st.warning(
                 "No persona workbooks in `workspace/datasets/` yet. "
-                "Download the template, fill it in, and upload above."
+                "Download the template, fill it in, upload, and save before running."
             )
         else:
             ds_names = [d.name for d in datasets]
             pick_default = st.session_state.get("eval_dataset_pick")
             pick_index = ds_names.index(pick_default) if pick_default in ds_names else 0
             ds_pick = st.selectbox(
-                "Persona workbook",
+                "Persona workbook (select the saved file you will run)",
                 ds_names,
                 index=pick_index,
                 key="eval_dataset_pick",
@@ -257,100 +337,58 @@ def render_agent() -> None:
                             st.rerun()
                         except ValueError as exc:
                             st.error(str(exc))
+
             run_label = st.text_input("Run label", value="eval_run")
+            notify_email = st.text_input(
+                "Email for completion notification (optional)",
+                placeholder="you@example.com",
+                key="eval_notify_email",
+                help="You will receive an email when the evaluation finishes or fails.",
+            )
             c1, c2, c3 = st.columns(3)
             resume = c1.checkbox("Resume incomplete run")
             limit = c2.number_input("Persona limit (0 = all)", min_value=0, value=0, step=1)
             workers = c3.number_input("Parallel workers", min_value=1, max_value=12, value=6)
 
-            if st.button("Start evaluation", type="primary"):
+            if job_running:
+                st.caption("An evaluation is already running. See **Evaluation status** above.")
+
+            if st.button(
+                "Start evaluation",
+                type="primary",
+                disabled=job_running,
+            ):
                 if not (AGENT_ROOT / "chatbot_live_eval.py").is_file():
                     st.error("chatbot_live_eval.py not found in repo root.")
                 else:
-                    progress_bar = st.progress(0.0, text="Starting evaluation…")
-                    progress_caption = st.empty()
-                    st.markdown("**Live session log**")
-                    log_box = st.empty()
-                    log_lines: list[str] = []
+                    try:
+                        start_background_evaluation(
+                            ws,
+                            model_key=model_key,
+                            prompt_key=prompt_key,
+                            prompt_label=prompts[prompt_key]["label"],
+                            dataset_xlsx=dataset,
+                            dataset_sheet=sheet,
+                            run_label=run_label,
+                            resume=resume,
+                            eval_limit=int(limit) if limit else None,
+                            parallel_workers=int(workers),
+                            notify_email=notify_email,
+                        )
+                        st.success(
+                            "Evaluation started in the background. "
+                            "You can stay on this tab or switch to the Dashboard — "
+                            "progress is shown under **Evaluation status**."
+                        )
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
 
-                    with st.status("Running live evaluation…", expanded=True) as status:
-                        try:
-                            entry = None
-                            total_personas = 0
-                            for event in run_evaluation_streaming(
-                                workspace=ws,
-                                model_key=model_key,
-                                prompt_key=prompt_key,
-                                prompt_label=prompts[prompt_key]["label"],
-                                prompt_file=None,
-                                dataset_xlsx=dataset,
-                                dataset_sheet=sheet,
-                                run_label=run_label,
-                                resume=resume,
-                                eval_limit=int(limit) if limit else None,
-                                parallel_workers=int(workers),
-                            ):
-                                if event["type"] == "start":
-                                    total_personas = event["total"]
-                                    progress_caption.caption(
-                                        f"0 / {total_personas} personas complete "
-                                        f"({event['remaining']} remaining)"
-                                    )
-                                elif event["type"] == "progress":
-                                    total = max(event["total"], 1)
-                                    completed = event["completed"]
-                                    remaining = event["remaining"]
-                                    in_flight = _inflight_from_log(log_lines)
-                                    progress_bar.progress(
-                                        completed / total,
-                                        text=f"{completed} / {total} personas complete",
-                                    )
-                                    status_bits = [
-                                        f"**{completed}** completed",
-                                        f"**{remaining}** remaining",
-                                        f"**{total}** total",
-                                    ]
-                                    if in_flight:
-                                        status_bits.insert(
-                                            1,
-                                            f"**{in_flight}** in progress (API calls running)",
-                                        )
-                                    hint = ""
-                                    if completed == 0 and in_flight:
-                                        hint = (
-                                            " Eval is running — first completion often takes "
-                                            "**1–3 minutes** (multiple API turns per persona)."
-                                        )
-                                    progress_caption.caption(" · ".join(status_bits) + hint)
-                                elif event["type"] == "log":
-                                    log_lines.append(event["line"])
-                                    log_box.code(
-                                        "\n".join(log_lines[-150:]),
-                                        language=None,
-                                    )
-                                elif event["type"] == "complete":
-                                    entry = event["entry"]
-
-                            if entry is None:
-                                raise RuntimeError("Evaluation finished without saving a run.")
-
-                            progress_bar.progress(
-                                1.0,
-                                text=f"{total_personas} / {total_personas} personas complete",
-                            )
-                            progress_caption.caption(
-                                f"**{total_personas}** completed · **0** remaining · "
-                                f"**{total_personas}** total"
-                            )
-                            status.update(label="Evaluation complete", state="complete")
-                            st.session_state["last_run_id"] = entry["run_id"]
-                            st.success(f"Run saved: `{entry['run_id']}`")
-                        except Exception as exc:
-                            status.update(label="Evaluation failed", state="error")
-                            st.exception(exc)
-
-            if st.session_state.get("last_run_id"):
-                st.info(f"Last run: **{st.session_state['last_run_id']}**")
+            last_id = st.session_state.get("last_run_id") or (
+                load_job_state(ws) or {}
+            ).get("result_run_id")
+            if last_id:
+                st.info(f"Last completed run: **{last_id}**")
                 if st.button("Save this eval to GitHub repo"):
                     _save_to_github(ws)
 
@@ -362,7 +400,12 @@ def render_agent() -> None:
         else:
             labels = [r.get("display_name", r["run_id"]) for r in runs]
             idx_a = st.selectbox("Group A", range(len(labels)), format_func=lambda i: labels[i])
-            idx_b = st.selectbox("Group B", range(len(labels)), index=min(1, len(labels) - 1), format_func=lambda i: labels[i])
+            idx_b = st.selectbox(
+                "Group B",
+                range(len(labels)),
+                index=min(1, len(labels) - 1),
+                format_func=lambda i: labels[i],
+            )
             if st.button("Run McNemar test", type="primary"):
                 run_a, run_b = runs[idx_a], runs[idx_b]
                 with st.spinner("Computing McNemar…"):
