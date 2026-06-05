@@ -184,20 +184,38 @@ def _load_user_test_cases(runs: list[dict], ws: Workspace) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def _load_run_predictions(run: dict, ws: Workspace) -> pd.DataFrame:
+    pred_path = _resolve_path(run.get("predictions_csv", ""), ws)
+    if not pred_path.is_file():
+        return pd.DataFrame()
+    return pd.read_csv(pred_path).drop_duplicates("persona_id", keep="last")
+
+
+def _scores_from_predictions(pred: pd.DataFrame) -> tuple[int | None, int | None, float | None]:
+    if pred.empty or "label_match" not in pred.columns:
+        return None, None, None
+    n = len(pred)
+    correct = int(pred["label_match"].astype(bool).sum())
+    accuracy = round(100.0 * correct / n, 1) if n else None
+    return n, correct, accuracy
+
+
 def _build_evaluation_runs(runs: list[dict], ws: Workspace) -> pd.DataFrame:
     rows: list[dict] = []
     for run in runs:
+        pred = _load_run_predictions(run, ws)
+        n_personas, correct, accuracy_pct = _scores_from_predictions(pred)
+
         arts = run.get("artifacts", {}) or {}
         acc_rel = arts.get("accuracy") or arts.get("chatbot_live_accuracy", "")
         acc_path = _resolve_path(acc_rel, ws)
-        accuracy = None
-        correct = None
-        n_personas = None
-        if acc_path.is_file():
+        if n_personas is None and acc_path.is_file():
             acc = json.loads(acc_path.read_text(encoding="utf-8"))
-            accuracy = acc.get("final_outcome_accuracy")
-            correct = acc.get("correct")
             n_personas = acc.get("n_personas")
+            correct = acc.get("correct")
+            acc_val = acc.get("final_outcome_accuracy")
+            accuracy_pct = round(float(acc_val) * 100, 1) if acc_val is not None else None
+
         rows.append(
             {
                 "run_id": run.get("run_id", ""),
@@ -211,7 +229,7 @@ def _build_evaluation_runs(runs: list[dict], ws: Workspace) -> pd.DataFrame:
                 "created_utc": run.get("created_utc", ""),
                 "persona_count": n_personas,
                 "correct_count": correct,
-                "accuracy_pct": round(float(accuracy) * 100, 1) if accuracy is not None else None,
+                "accuracy_pct": accuracy_pct,
             }
         )
     return _rename_df(pd.DataFrame(rows))
@@ -223,7 +241,9 @@ def _build_persona_results(runs: list[dict], ws: Workspace) -> pd.DataFrame:
         pred_path = _resolve_path(run.get("predictions_csv", ""), ws)
         if not pred_path.is_file():
             continue
-        pred = pd.read_csv(pred_path).drop_duplicates("persona_id", keep="last")
+        pred = _load_run_predictions(run, ws)
+        if pred.empty:
+            continue
         for _, r in pred.iterrows():
             rows.append(
                 {
@@ -287,6 +307,29 @@ def _build_turn_details(runs: list[dict], ws: Workspace) -> pd.DataFrame:
 def _build_run_summary(runs: list[dict], ws: Workspace) -> pd.DataFrame:
     rows: list[dict] = []
     for run in runs:
+        pred = _load_run_predictions(run, ws)
+        if not pred.empty and "truth_label" in pred.columns:
+            pred = pred.copy()
+            pred["gold_truth"] = pred["truth_label"].map(_pretty_outcome)
+            for label, grp in pred.groupby("gold_truth"):
+                if not label:
+                    continue
+                scored = grp.dropna(subset=["label_match"])
+                n_in = len(grp)
+                n_correct = int(scored["label_match"].astype(bool).sum()) if not scored.empty else 0
+                recall = round(100.0 * n_correct / n_in, 1) if n_in else None
+                rows.append(
+                    {
+                        "run_id": run.get("run_id", ""),
+                        "display_name": run.get("display_name", ""),
+                        "outcome_class": label,
+                        "personas_in_class": n_in,
+                        "correct_in_class": n_correct,
+                        "recall_pct": recall,
+                    }
+                )
+            continue
+
         arts = run.get("artifacts", {}) or {}
         acc_rel = arts.get("accuracy") or arts.get("chatbot_live_accuracy", "")
         acc_path = _resolve_path(acc_rel, ws)
