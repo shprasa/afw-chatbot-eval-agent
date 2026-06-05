@@ -1,1 +1,1 @@
-"""AFW plug-and-play chatbot evaluation agent."""
+"""AFW Screening Chatbot Evaluation Agent."""
