@@ -195,7 +195,7 @@ def page_accuracy_by_class(summary: pd.DataFrame, runs: pd.DataFrame) -> None:
         aspect="auto",
         color_continuous_scale=[[0, "#FEE2E2"], [0.5, "#FEF3C7"], [1, "#DCFCE7"]],
         labels=dict(color="Recall %"),
-        title="Recall by Gold Outcome Class (rows) × Evaluation Arm (columns)",
+        title="Recall by Truth Outcome Class (rows) × Evaluation Arm (columns)",
     )
     fig.update_layout(height=420)
     st.plotly_chart(fig, use_container_width=True)
@@ -258,7 +258,7 @@ def page_confusion(personas: pd.DataFrame) -> None:
         pivot,
         text_auto=True,
         color_continuous_scale="Blues",
-        labels=dict(x="Predicted", y="Gold (Truth)", color="Count"),
+        labels=dict(x="Predicted", y="Truth", color="Count"),
         title=f"Confusion Matrix — {run_sel}",
     )
     fig.update_layout(height=440)
@@ -274,7 +274,7 @@ def page_confusion(personas: pd.DataFrame) -> None:
             x="Errors",
             y="Pattern",
             orientation="h",
-            title="Most frequent gold → predicted errors",
+            title="Most frequent truth → predicted errors",
             color="Errors",
             color_continuous_scale=[[0, BRAND["sky"]], [1, BRAND["danger"]]],
         )
@@ -302,7 +302,7 @@ def page_failure_review(personas: pd.DataFrame, turns: pd.DataFrame) -> None:
         c3.metric("Count", int(patterns.iloc[0]["Errors"]))
 
     pattern_filter = st.multiselect(
-        "Filter by truth label",
+        "Filter by truth outcome",
         sorted(bad["Truth Label"].dropna().unique()),
     )
     show = bad if not pattern_filter else bad[bad["Truth Label"].isin(pattern_filter)]
@@ -312,7 +312,7 @@ def page_failure_review(personas: pd.DataFrame, turns: pd.DataFrame) -> None:
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Truth Label": st.column_config.TextColumn("Gold"),
+            "Truth Label": st.column_config.TextColumn("Truth"),
             "Predicted Label": st.column_config.TextColumn("Predicted"),
         },
     )
@@ -366,7 +366,7 @@ def page_conversations(turns: pd.DataFrame, personas: pd.DataFrame) -> None:
             from afw_eval_dashboard.analytics import is_match
             ok = is_match(match)
             st.markdown(
-                f"**Gold:** `{r.get('Truth Label', '')}` · "
+                f"**Truth:** `{r.get('Truth Label', '')}` · "
                 f"**Predicted:** `{r.get('Predicted Label', '')}` · "
                 f"**Match:** {'✅' if ok else '❌'}"
             )
@@ -416,8 +416,8 @@ def page_statistics(mcnemar: pd.DataFrame) -> None:
             )
 
 
-def page_test_cases(cases: pd.DataFrame) -> None:
-    hero("Gold Test Cases", "Source workbook — original columns preserved")
+def page_test_cases(cases: pd.DataFrame, personas: pd.DataFrame) -> None:
+    hero("User Test Cases", "Source workbook with truth labels from evaluation runs")
 
     if cases.empty:
         st.info("No test cases loaded.")
@@ -427,14 +427,28 @@ def page_test_cases(cases: pd.DataFrame) -> None:
         "Persona",
         ["(all)"] + sorted(cases["persona_id"].dropna().astype(str).unique().tolist()),
     )
-    df = cases if pid == "(all)" else cases[cases["persona_id"].astype(str) == pid]
+    df = cases if pid == "(all)" else cases[cases["persona_id"].astype(str) == pid].copy()
+
+    if pid != "(all)" and not personas.empty and "Persona ID" in personas.columns:
+        pr = personas[personas["Persona ID"].astype(str) == pid][
+            ["Display Name", "Truth Label", "Predicted Label", "Correct Match"]
+        ].drop_duplicates()
+        if not pr.empty:
+            st.subheader("Truth vs predicted (eval runs)")
+            st.dataframe(pr, hide_index=True, use_container_width=True)
+
     key_cols = [
         c for c in [
-            "persona_id", "engineered_for", "simulated_user_message",
-            "ix. final eligibility outcome", "ix. manual label", "labeler notes",
+            "persona_id",
+            "engineered_for",
+            "ix. final eligibility outcome",
+            "ix. manual label",
+            "simulated_user_message",
+            "labeler notes",
         ]
         if c in df.columns
     ]
+    st.subheader("Workbook truth columns")
     st.dataframe(df[key_cols] if key_cols else df, use_container_width=True, hide_index=True)
     with st.expander("All columns"):
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -578,7 +592,7 @@ def main() -> None:
         "Failure Review",
         "Conversations",
         "McNemar Stats",
-        "Gold Test Cases",
+        "User Test Cases",
     ])
 
     with tab1:
@@ -594,7 +608,7 @@ def main() -> None:
     with tab6:
         page_statistics(mcnemar)
     with tab7:
-        page_test_cases(cases)
+        page_test_cases(cases, personas)
 
 
 if __name__ == "__main__":
