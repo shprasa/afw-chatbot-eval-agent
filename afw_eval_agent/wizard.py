@@ -256,10 +256,20 @@ def menu_mcnemar(ws: Workspace) -> None:
         agent_root=AGENT_ROOT,
     )
     outputs = write_comparison_outputs(stats, ws.comparisons)
+    try:
+        export_powerbi_data(ws)
+        print("Power BI / dashboard export refreshed.")
+    except Exception as exc:
+        print(f"Warning: export after McNemar failed: {exc}")
     print("\nMcNemar comparison saved:")
     for k, p in outputs.items():
         if Path(p).exists():
             print(f"  {k}: {p}")
+    if _prompt("Save results to GitHub repo now? (y/N)", "n").lower() == "y":
+        from .github_publish import publish_workspace
+
+        result = publish_workspace(ws, message="McNemar comparison and workspace update")
+        print(f"Pushed {result['count']} files to {result['url']}")
 
 
 def menu_list_runs(ws: Workspace) -> None:
