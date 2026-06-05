@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "013c4055bac0f955d6d93742",
+  "position": {
+    "x": 24,
+    "y": 24,
+    "z": 0,
+    "height": 110,
+    "width": 200,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "persona_id"
+                }
+              },
+              "queryRef": "User Test Cases.persona_id",
+              "nativeQueryRef": "persona_id",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
