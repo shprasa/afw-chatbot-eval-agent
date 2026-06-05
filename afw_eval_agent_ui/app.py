@@ -12,10 +12,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from afw_eval_agent.background_job import (
+    cancel_job,
+    clear_job,
     job_is_active,
-    job_log_path,
-    job_state_path,
     load_job_state,
+    normalize_owner_email,
     read_job_log_tail,
     start_background_evaluation,
     sync_job_state,
@@ -76,10 +77,18 @@ def _push_dataset_to_repo(ws: Workspace, local: Path) -> bool:
     )
 
 
-def _clear_job_files(ws: Workspace) -> None:
-    for path in (job_state_path(ws), job_log_path(ws)):
-        if path.is_file():
-            path.unlink()
+def _owner_email() -> str:
+    return st.session_state.get("eval_owner_email", "").strip()
+
+
+def _try_normalize_owner_email() -> str | None:
+    raw = _owner_email()
+    if not raw:
+        return None
+    try:
+        return normalize_owner_email(raw)
+    except ValueError:
+        return None
 
 
 def _save_to_github(ws: Workspace) -> None:
@@ -93,15 +102,16 @@ def _save_to_github(ws: Workspace) -> None:
     st.caption("Dashboard refreshes within ~20 minutes (or reload the page).")
 
 
-def _render_active_job_panel(ws: Workspace) -> bool:
-    state = sync_job_state(ws)
+def _render_active_job_panel(ws: Workspace, owner_email: str) -> bool:
+    state = sync_job_state(ws, owner_email)
     if not state:
         return False
 
     status = state.get("status", "")
     with st.container(border=True):
         st.markdown("### Evaluation status")
-        if status in {"pending", "running"}:
+        st.caption(f"Your runs are tracked by **{owner_email}** — other users cannot see or cancel them.")
+        if status in {"pending", "running", "cancelling"}:
             st.warning(
                 f"**In progress:** {state.get('run_label', 'eval')} · "
                 f"{state.get('dataset', '')} · "
@@ -115,6 +125,8 @@ def _render_active_job_panel(ws: Workspace) -> bool:
             if state.get("email_status"):
                 st.caption(state["email_status"])
             st.session_state["last_run_id"] = state.get("result_run_id")
+        elif status == "cancelled":
+            st.warning(f"**Cancelled:** {state.get('error', 'Stopped by user.')}")
         elif status == "failed":
             st.error(f"**Failed:** {state.get('error', 'Unknown error')}")
             if state.get("email_status"):
@@ -125,13 +137,13 @@ def _render_active_job_panel(ws: Workspace) -> bool:
         remaining = max(int(state.get("remaining") or 0), 0)
         in_flight = int(state.get("in_flight") or 0)
 
-        if status in {"pending", "running", "completed"}:
+        if status in {"pending", "running", "cancelling", "completed"}:
             st.progress(
                 completed / total if status != "completed" else 1.0,
                 text=f"{completed} / {total} personas complete",
             )
             bits = [f"**{completed}** completed", f"**{remaining}** remaining", f"**{total}** total"]
-            if in_flight and status in {"pending", "running"}:
+            if in_flight and status in {"pending", "running", "cancelling"}:
                 bits.insert(1, f"**{in_flight}** in progress")
             hint = ""
             if status in {"pending", "running"} and completed == 0 and in_flight:
@@ -141,22 +153,31 @@ def _render_active_job_panel(ws: Workspace) -> bool:
                 )
             st.caption(" · ".join(bits) + hint)
 
+        if status in {"pending", "running", "cancelling"}:
+            if st.button("Cancel evaluation", type="secondary", key="cancel_eval_job"):
+                try:
+                    cancel_job(ws, owner_email)
+                    st.warning("Evaluation cancelled.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+
         st.markdown("**Live session log**")
-        log_text = read_job_log_tail(ws)
+        log_text = read_job_log_tail(ws, owner_email)
         st.code(log_text or "Waiting for log output…", language=None)
 
-        if status in {"completed", "failed"}:
+        if status in {"completed", "failed", "cancelled"}:
             if st.button("Clear evaluation status", key="clear_job_status"):
-                _clear_job_files(ws)
+                clear_job(ws, owner_email)
                 st.rerun()
 
     return job_is_active(state)
 
 
 @st.fragment(run_every=timedelta(seconds=5))
-def _poll_active_job(ws: Workspace) -> None:
-    if job_is_active(sync_job_state(ws)):
-        _render_active_job_panel(ws)
+def _poll_active_job(ws: Workspace, owner_email: str) -> None:
+    if job_is_active(sync_job_state(ws, owner_email)):
+        _render_active_job_panel(ws, owner_email)
 
 
 def render_agent() -> None:
@@ -179,9 +200,26 @@ def render_agent() -> None:
     tab_run, tab_mcn, tab_runs = st.tabs(["Run evaluation", "McNemar comparison", "Saved runs"])
 
     with tab_run:
-        job_running = _render_active_job_panel(ws)
-        if job_running:
-            _poll_active_job(ws)
+        st.markdown("**Your email**")
+        st.caption(
+            "Required. In-progress runs and notifications are tied to this address — "
+            "you only see runs you started with the same email."
+        )
+        owner_input = st.text_input(
+            "Email",
+            placeholder="you@example.com",
+            key="eval_owner_email",
+            help="Used to track your background runs and send completion emails.",
+        )
+        owner_email = _try_normalize_owner_email()
+
+        job_running = False
+        if owner_email:
+            job_running = _render_active_job_panel(ws, owner_email)
+            if job_running:
+                _poll_active_job(ws, owner_email)
+        elif owner_input.strip():
+            st.error("Enter a valid email address to start or view evaluations.")
 
         st.subheader("New evaluation run")
         template_path = _ensure_template(ws)
@@ -339,12 +377,6 @@ def render_agent() -> None:
                             st.error(str(exc))
 
             run_label = st.text_input("Run label", value="eval_run")
-            notify_email = st.text_input(
-                "Email for completion notification (optional)",
-                placeholder="you@example.com",
-                key="eval_notify_email",
-                help="You will receive an email when the evaluation finishes or fails.",
-            )
             c1, c2, c3 = st.columns(3)
             resume = c1.checkbox("Resume incomplete run")
             limit = c2.number_input("Persona limit (0 = all)", min_value=0, value=0, step=1)
@@ -356,14 +388,17 @@ def render_agent() -> None:
             if st.button(
                 "Start evaluation",
                 type="primary",
-                disabled=job_running,
+                disabled=job_running or not owner_email,
             ):
-                if not (AGENT_ROOT / "chatbot_live_eval.py").is_file():
+                if not owner_email:
+                    st.error("Enter your email at the top of this tab before starting.")
+                elif not (AGENT_ROOT / "chatbot_live_eval.py").is_file():
                     st.error("chatbot_live_eval.py not found in repo root.")
                 else:
                     try:
                         start_background_evaluation(
                             ws,
+                            owner_email=owner_email,
                             model_key=model_key,
                             prompt_key=prompt_key,
                             prompt_label=prompts[prompt_key]["label"],
@@ -373,7 +408,6 @@ def render_agent() -> None:
                             resume=resume,
                             eval_limit=int(limit) if limit else None,
                             parallel_workers=int(workers),
-                            notify_email=notify_email,
                         )
                         st.success(
                             "Evaluation started in the background. "
@@ -385,7 +419,7 @@ def render_agent() -> None:
                         st.error(str(exc))
 
             last_id = st.session_state.get("last_run_id") or (
-                load_job_state(ws) or {}
+                (load_job_state(ws, owner_email) or {}) if owner_email else {}
             ).get("result_run_id")
             if last_id:
                 st.info(f"Last completed run: **{last_id}**")
