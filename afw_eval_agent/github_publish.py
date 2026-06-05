@@ -145,7 +145,43 @@ def _workspace_publish_paths(ws: Workspace) -> list[Path]:
         for f in ws.powerbi_export.rglob("*"):
             if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
                 paths.append(f)
+    if ws.datasets.is_dir():
+        for f in ws.datasets.glob("*.xlsx"):
+            if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
+                paths.append(f)
+    if ws.templates.is_dir():
+        for f in ws.templates.glob("*.xlsx"):
+            if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
+                paths.append(f)
     return paths
+
+
+def repo_relative_path(ws: Workspace, local: Path) -> str:
+    try:
+        return str(local.relative_to(AGENT_ROOT)).replace("\\", "/")
+    except ValueError:
+        return f"workspace/{local.relative_to(ws.root)}".replace("\\", "/")
+
+
+def publish_file(
+    local: Path,
+    repo_rel: str,
+    *,
+    message: str = "Update file from eval agent",
+    secrets: Any | None = None,
+    config_path: Path | None = None,
+) -> bool:
+    creds = resolve_credentials(secrets=secrets, config_path=config_path or AGENT_ROOT / "github_publish_config.txt")
+    if not creds or not local.is_file():
+        return False
+    return push_file(
+        creds["token"],
+        creds["owner"],
+        creds["repo"],
+        repo_rel,
+        local,
+        message,
+    )
 
 
 def publish_workspace(
