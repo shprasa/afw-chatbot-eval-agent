@@ -1,0 +1,122 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "dfff86ef7ee1d2252d0335f5",
+  "position": {
+    "x": 660,
+    "y": 180,
+    "z": 0,
+    "height": 500,
+    "width": 596,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Display Name"
+                }
+              },
+              "queryRef": "Evaluation Runs.Display Name",
+              "nativeQueryRef": "Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Model Display"
+                }
+              },
+              "queryRef": "Evaluation Runs.Model Display",
+              "nativeQueryRef": "Model Display"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Prompt Label"
+                }
+              },
+              "queryRef": "Evaluation Runs.Prompt Label",
+              "nativeQueryRef": "Prompt Label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Persona Count"
+                }
+              },
+              "queryRef": "Evaluation Runs.Persona Count",
+              "nativeQueryRef": "Persona Count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Correct Count"
+                }
+              },
+              "queryRef": "Evaluation Runs.Correct Count",
+              "nativeQueryRef": "Correct Count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Accuracy Pct"
+                }
+              },
+              "queryRef": "Evaluation Runs.Accuracy Pct",
+              "nativeQueryRef": "Accuracy Pct"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Evaluation Runs"
+                    }
+                  },
+                  "Property": "Created UTC"
+                }
+              },
+              "queryRef": "Evaluation Runs.Created UTC",
+              "nativeQueryRef": "Created UTC"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
