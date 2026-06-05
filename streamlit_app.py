@@ -23,7 +23,7 @@ dash = st.Page(
 )
 agent = st.Page(
     "afw_eval_agent_ui/app.py",
-    title="AFW Screening Chatbot Evaluation Agent",
+    title="Evaluation Agent",
     icon="🛠️",
     url_path="Eval_Agent",
 )
