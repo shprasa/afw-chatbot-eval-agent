@@ -1,8 +1,8 @@
 # Deploy the AFW dashboard for your external team
 
-**Goal:** Give your team a **shared URL** that shows live eval results — not `localhost` on your machine.
+**Repo:** https://github.com/shprasa/afw-chatbot-eval-agent (public)
 
-The recommended path is **Streamlit Community Cloud** (free). It reads CSV exports from your private GitHub repo on every refresh.
+The dashboard reads eval CSV exports from this repo. No GitHub token is required for a public repo.
 
 ---
 
@@ -10,13 +10,13 @@ The recommended path is **Streamlit Community Cloud** (free). It reads CSV expor
 
 | Item | How they access it |
 |------|-------------------|
-| **Live dashboard** | https://afw-chatbot-eval.streamlit.app |
-| **Eval agent + data** | GitHub repo `shprasa/afw-chatbot-eval-agent` (add them as collaborators) |
-| **Updates** | Automatic — agent exports CSVs → dashboard refreshes within ~20 seconds |
+| **GitHub repo** | https://github.com/shprasa/afw-chatbot-eval-agent — clone, browse data, run agent |
+| **Live dashboard** | Streamlit Cloud URL (see Step 3) or run locally |
+| **Updates** | Push new CSVs after each eval → dashboard refreshes within ~20 seconds |
 
 ---
 
-## Step 1 — Push dashboard files to GitHub
+## Step 1 — Push latest data to GitHub
 
 From your Desktop folder:
 
@@ -24,88 +24,49 @@ From your Desktop folder:
 python push_readme_to_github.py
 ```
 
-This uploads `streamlit_app.py`, `afw_eval_dashboard/`, `requirements.txt`, and the latest `workspace/powerbi_export/csv/` files.
+This uploads `streamlit_app.py`, `afw_eval_dashboard/`, `requirements.txt`, and `workspace/powerbi_export/csv/`.
 
 ---
 
-## Step 2 — Add GitHub collaborators (agent handoff)
-
-1. Open https://github.com/shprasa/afw-chatbot-eval-agent/settings/access
-2. **Invite collaborators** → add each teammate's GitHub username
-3. They can clone the repo and run the agent locally, or rely on your scheduled runs + the live dashboard
-
----
-
-## Step 3 — Deploy to Streamlit Cloud
+## Step 2 — Deploy to Streamlit Cloud (team URL)
 
 1. Go to https://share.streamlit.io and sign in with GitHub
-2. **New app** → pick repo `afw-chatbot-eval-agent`, branch `main`
+2. **New app** (or edit existing) → repo **`afw-chatbot-eval-agent`**, branch `main`
 3. **Main file path:** `streamlit_app.py`
-4. Click **Advanced settings** → add Python 3.10+ if needed
-5. Under **Secrets**, paste (use a **read-only** fine-grained token scoped to this repo):
+4. **Secrets are optional** for a public repo — the app uses CSVs committed in the repo
+5. **Deploy**
+
+Optional secrets (only if you later make the repo private again):
 
 ```toml
-GITHUB_TOKEN = "ghp_xxxxxxxx"
 GITHUB_OWNER = "shprasa"
 GITHUB_REPO = "afw-chatbot-eval-agent"
 GITHUB_BRANCH = "main"
-
-# Optional — share this password only with your team (hides dashboard from random visitors)
-TEAM_PASSWORD = "choose-a-strong-password"
+GITHUB_TOKEN = "ghp_xxxxxxxx"
 ```
-
-6. **Deploy**
-
-When the app is live, copy the `.streamlit.app` URL and send it to your team.
 
 ---
 
-## Step 4 — Share with the external team
-
-Send them:
-
-1. **Dashboard URL** — the Streamlit link (and optional `TEAM_PASSWORD` if you set one)
-2. **GitHub repo** — after they accept the collaborator invite
-3. **Handoff doc** — `README_HANDOFF.md` in the repo for running evals
-
-They do **not** need Power BI or your laptop running. The dashboard pulls from GitHub.
-
----
-
-## Optional — run in GitHub Codespace
-
-```bash
-pip install -r requirements.txt
-streamlit run streamlit_app.py --server.enableCORS false --server.enableXsrfProtection false
-```
-
-Or: `bash run_dashboard.sh`
-
-The Codespace auto-detects `workspace/powerbi_export/csv` in the cloned repo (no token needed). Open the forwarded port in the **Ports** tab.
-
-## Optional — run locally with GitHub live mode
+## Step 3 — Run locally
 
 ```cmd
 pip install -r requirements.txt
 streamlit run streamlit_app.py --server.port 8502
 ```
 
-In the sidebar, choose **GitHub (team live)**. Locally, credentials come from `github_publish_config.txt` (never commit that file).
+Choose **GitHub (team live)** in the sidebar — works without a token on the public repo.
 
 ---
 
-## Security checklist (before handoff)
+## Hand off to external team
 
-- [ ] Create a **fine-grained GitHub token** with read-only access to `afw-chatbot-eval-agent` for Streamlit secrets
-- [ ] **Revoke** any old tokens pasted into `github_publish_config.txt` on your Desktop
-- [ ] Set `TEAM_PASSWORD` in Streamlit secrets if the app URL should not be open to the public
-- [ ] Confirm `github_publish_config.txt` is **not** in the GitHub repo
+Send them:
 
----
+1. **GitHub repo URL** — https://github.com/shprasa/afw-chatbot-eval-agent
+2. **Streamlit dashboard URL** — your `.streamlit.app` link
+3. **`README_HANDOFF.md`** — how to run evals
 
-## Power BI (optional, not required for team access)
-
-Power BI Desktop still works for static executive decks. For **live team monitoring**, use the Streamlit URL above. See `workspace/powerbi_export/POWERBI_Setup_Guide.md` if needed.
+They do not need collaborator access on a public repo. They do not need your laptop running.
 
 ---
 
@@ -113,7 +74,6 @@ Power BI Desktop still works for static executive decks. For **live team monitor
 
 | Problem | Fix |
 |---------|-----|
-| Dashboard empty | Run an eval (agent menu 1) so CSVs exist under `workspace/powerbi_export/csv/` |
-| GitHub auth error on Cloud | Check `GITHUB_TOKEN` in Streamlit secrets; token needs `Contents: Read` on the repo |
-| Team cannot clone repo | Add them under repo **Settings → Collaborators** |
-| Data stale | Agent must push exports (`push_readme_to_github.py` or your publish script after each run) |
+| Dashboard empty | Run `python push_readme_to_github.py` after an eval export |
+| Streamlit shows old app | Point Streamlit Cloud at `afw-chatbot-eval-agent`, not `afw-chatbot-eval` |
+| Data stale | Agent exports → `push_readme_to_github.py` → Streamlit auto-redeploys |
