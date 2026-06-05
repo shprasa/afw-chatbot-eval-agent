@@ -1,6 +1,7 @@
 """Live Streamlit front-end for the AFW Screening Chatbot Evaluation Agent."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -66,6 +67,21 @@ def _push_dataset_to_repo(ws: Workspace, local: Path) -> bool:
         message="Eval agent: upload persona workbook",
         secrets=getattr(st, "secrets", None),
     )
+
+
+_PERSONA_START_RE = re.compile(r"persona (\S+) session")
+_PERSONA_DONE_RE = re.compile(r"\] (\S+) truth=")
+
+
+def _inflight_from_log(log_lines: list[str]) -> int:
+    started: set[str] = set()
+    done: set[str] = set()
+    for line in log_lines:
+        for match in _PERSONA_START_RE.finditer(line):
+            started.add(match.group(1))
+        for match in _PERSONA_DONE_RE.finditer(line):
+            done.add(match.group(1))
+    return len(started - done)
 
 
 def _save_to_github(ws: Workspace) -> None:
@@ -284,15 +300,28 @@ def render_agent() -> None:
                                     total = max(event["total"], 1)
                                     completed = event["completed"]
                                     remaining = event["remaining"]
+                                    in_flight = _inflight_from_log(log_lines)
                                     progress_bar.progress(
                                         completed / total,
                                         text=f"{completed} / {total} personas complete",
                                     )
-                                    progress_caption.caption(
-                                        f"**{completed}** completed · "
-                                        f"**{remaining}** remaining · "
-                                        f"**{total}** total"
-                                    )
+                                    status_bits = [
+                                        f"**{completed}** completed",
+                                        f"**{remaining}** remaining",
+                                        f"**{total}** total",
+                                    ]
+                                    if in_flight:
+                                        status_bits.insert(
+                                            1,
+                                            f"**{in_flight}** in progress (API calls running)",
+                                        )
+                                    hint = ""
+                                    if completed == 0 and in_flight:
+                                        hint = (
+                                            " Eval is running — first completion often takes "
+                                            "**1–3 minutes** (multiple API turns per persona)."
+                                        )
+                                    progress_caption.caption(" · ".join(status_bits) + hint)
                                 elif event["type"] == "log":
                                     log_lines.append(event["line"])
                                     log_box.code(
