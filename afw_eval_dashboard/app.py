@@ -558,7 +558,7 @@ def _load_tables() -> dict[str, pd.DataFrame]:
         st.sidebar.success("Data: committed in repo")
     elif cloud or (gh_settings and not (codespace and local_ok)):
         use_github = True
-        st.sidebar.success(f"Data: github.com/{gh_settings['owner']}/{gh_settings['repo']}")
+        st.sidebar.success("Data: live export (auto-refresh)")
     elif local_ok:
         use_github = st.sidebar.radio("Data source", ["Local", "GitHub"], index=0) == "GitHub"
     else:
@@ -636,7 +636,8 @@ def render_dashboard() -> None:
     )
 
     st.sidebar.markdown(
-        "[GitHub repo](https://github.com/shprasa/afw-chatbot-eval-agent) · Public"
+        "[Eval Agent](https://afw-chatbot-eval-agent.streamlit.app/Eval_Agent) · "
+        "[Dashboard](https://afw-chatbot-eval-agent.streamlit.app)"
     )
 
     gh_for_mcn = resolve_github_settings(
