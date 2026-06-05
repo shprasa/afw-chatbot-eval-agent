@@ -1,7 +1,7 @@
 # AFW Chatbot Evaluation Agent — Handoff Package
 
 Angel Flight West (AFW) live evaluation agent for screening chatbot accuracy.
-Built for the Demand Management practicum (New Horizons initiative).
+Built for the UC Davis Graduate School of Management MSBA Angel Flight West Demand Management practicum.
 
 ## What this package does
 
@@ -137,5 +137,5 @@ AFW_Eval_Agent_Handoff/
 
 ## Contact / lineage
 
-Spring 2026 UCLA Anderson practicum — Angel Flight West Demand Management.
+UC Davis Graduate School of Management MSBA — Angel Flight West Demand Management practicum.
 Primary module: `chatbot_live_eval.py` (package root).
