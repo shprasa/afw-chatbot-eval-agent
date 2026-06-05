@@ -1,17 +1,17 @@
 ﻿Run ID,Display Name,Outcome Class,Personas In Class,Correct In Class,Recall Pct
 benchmark_openai_v1,OpenAI v1 | System Prompt v1 | 120 personas,Eligible,30,21,70.0
 benchmark_openai_v1,OpenAI v1 | System Prompt v1 | 120 personas,Ineligible,30,23,76.7
-benchmark_openai_v1,OpenAI v1 | System Prompt v1 | 120 personas,Manual Review,30,10,33.3
 benchmark_openai_v1,OpenAI v1 | System Prompt v1 | 120 personas,Insufficient Information,30,14,46.7
+benchmark_openai_v1,OpenAI v1 | System Prompt v1 | 120 personas,Manual Review,30,10,33.3
 benchmark_openai_v10,OpenAI v10 | System Prompt v10 | 120 personas,Eligible,30,17,56.7
 benchmark_openai_v10,OpenAI v10 | System Prompt v10 | 120 personas,Ineligible,30,24,80.0
-benchmark_openai_v10,OpenAI v10 | System Prompt v10 | 120 personas,Manual Review,30,14,46.7
 benchmark_openai_v10,OpenAI v10 | System Prompt v10 | 120 personas,Insufficient Information,30,19,63.3
+benchmark_openai_v10,OpenAI v10 | System Prompt v10 | 120 personas,Manual Review,30,14,46.7
 benchmark_claude_v1,Claude v1 | System Prompt v1 | 120 personas,Eligible,30,21,70.0
 benchmark_claude_v1,Claude v1 | System Prompt v1 | 120 personas,Ineligible,30,20,66.7
-benchmark_claude_v1,Claude v1 | System Prompt v1 | 120 personas,Manual Review,30,14,46.7
 benchmark_claude_v1,Claude v1 | System Prompt v1 | 120 personas,Insufficient Information,30,25,83.3
+benchmark_claude_v1,Claude v1 | System Prompt v1 | 120 personas,Manual Review,30,14,46.7
 benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Eligible,30,22,73.3
 benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Ineligible,30,21,70.0
-benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Manual Review,31,12,38.7
-benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Insufficient Information,31,23,74.2
+benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Insufficient Information,30,23,76.7
+benchmark_claude_v10,Claude v10 | System Prompt v10 | 120 personas,Manual Review,30,12,40.0
