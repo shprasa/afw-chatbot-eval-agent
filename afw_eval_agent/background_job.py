@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import AGENT_ROOT, Workspace, default_workspace
+from .github_publish import try_publish_workspace
 from .notify import send_eval_complete_email, send_eval_failed_email
 from .runner import run_evaluation_streaming
 
@@ -218,6 +219,7 @@ def start_background_evaluation(
         "result_run_id": None,
         "error": None,
         "email_status": None,
+        "github_publish_status": None,
     }
     save_job_state(ws, email, state)
 
@@ -225,6 +227,8 @@ def start_background_evaluation(
     env["AFW_WORKSPACE_ROOT"] = str(ws.root)
     env["AFW_JOB_OWNER_EMAIL"] = email
     env["PYTHONUNBUFFERED"] = "1"
+    if github_env:
+        env.update(github_env)
     cmd = [sys.executable, "-m", "afw_eval_agent.background_job"]
     popen_kwargs: dict[str, Any] = {
         "cwd": str(AGENT_ROOT),
@@ -308,6 +312,19 @@ def execute_job(workspace_root: Path | None = None) -> int:
         state["status"] = "completed"
         state["result_run_id"] = entry["run_id"]
         state["error"] = None
+        save_job_state(ws, email, state)
+
+        pub = try_publish_workspace(
+            ws,
+            message=f"Eval agent: auto-sync {entry['run_id']}",
+        )
+        if pub["ok"]:
+            state["github_publish_status"] = (
+                f"Synced {pub['count']} files to the team repo. "
+                "Dashboard updates within ~20 minutes."
+            )
+        else:
+            state["github_publish_status"] = f"Repo sync skipped: {pub['error']}"
         save_job_state(ws, email, state)
 
         ok, msg = send_eval_complete_email(
