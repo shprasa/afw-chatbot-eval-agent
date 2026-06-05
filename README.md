@@ -378,7 +378,7 @@ If you use git and want to upload new runs for your team:
 ```powershell
 cd C:\Users\YourName\Downloads\afw-chatbot-eval-agent
 git add workspace/ config/
-git commit -m "Added my evaluation run"
+git commit -m "Added evaluation run and refreshed Power BI data"
 git push
 ```
 
@@ -399,7 +399,8 @@ If you downloaded the ZIP and do not use git, you can share the `workspace` fold
 | **7** | Add a new API server |
 | **8** | Add a new prompt label |
 | **9** | List saved servers and labels |
-| **10** | Exit |
+| **10** | Refresh Power BI export now |
+| **11** | Exit |
 
 ---
 
