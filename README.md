@@ -4,7 +4,7 @@
 
 This program tests the Angel Flight West (AFW) screening chatbot. It:
 
-1. Reads fake patient conversations from an **Excel file** on your computer  
+1. Reads synthetic patient conversations from an **Excel file** on your computer  
 2. Sends those messages to the live AFW chatbot website (one message at a time)  
 3. Compares the chatbot's answers to the correct answers in your Excel file  
 4. Saves reports in a folder called `workspace`
