@@ -1,0 +1,108 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.7.0/schema.json",
+  "name": "81ebde6de4ebd91bd4de9192",
+  "position": {
+    "x": 24,
+    "y": 150,
+    "z": 0,
+    "height": 540,
+    "width": 1232,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "persona_id"
+                }
+              },
+              "queryRef": "User Test Cases.persona_id",
+              "nativeQueryRef": "persona_id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "engineered_for"
+                }
+              },
+              "queryRef": "User Test Cases.engineered_for",
+              "nativeQueryRef": "engineered_for"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "simulated_user_message"
+                }
+              },
+              "queryRef": "User Test Cases.simulated_user_message",
+              "nativeQueryRef": "simulated_user_message"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "ix. final eligibility outcome"
+                }
+              },
+              "queryRef": "User Test Cases.ix. final eligibility outcome",
+              "nativeQueryRef": "ix. final eligibility outcome"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "ix. manual label"
+                }
+              },
+              "queryRef": "User Test Cases.ix. manual label",
+              "nativeQueryRef": "ix. manual label"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Test Cases"
+                    }
+                  },
+                  "Property": "labeler notes"
+                }
+              },
+              "queryRef": "User Test Cases.labeler notes",
+              "nativeQueryRef": "labeler notes"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
