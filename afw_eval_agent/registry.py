@@ -85,7 +85,7 @@ def get_model(key: str) -> dict[str, Any]:
     return models[key]
 
 
-def add_model(*, display: str, base_url: str, backend: str, key: str | None = None) -> str:
+def add_model(*, display: str, base_url: str, backend: str = "", key: str | None = None) -> str:
     data = load_registry()
     base_url = base_url.rstrip("/")
     key = key or _slug(display)
