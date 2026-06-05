@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import AGENT_ROOT, Workspace
+from .powerbi_export import export_powerbi_data
 from .registry import get_model, list_prompt_labels, resolve_prompt_reference_file
 
 
@@ -179,6 +180,11 @@ def run_evaluation(
         __import__("json").dumps(entry, indent=2),
         encoding="utf-8",
     )
+    try:
+        pbi = export_powerbi_data(workspace)
+        print(f"Power BI data updated: {pbi}")
+    except Exception as exc:
+        print(f"Warning: Power BI export failed: {exc}")
     return entry
 
 
