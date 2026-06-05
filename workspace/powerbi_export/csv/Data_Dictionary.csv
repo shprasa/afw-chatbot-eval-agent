@@ -1,0 +1,8 @@
+﻿Table Name,Description
+User Test Cases,Original persona workbook — columns preserved exactly from source Excel.
+Evaluation Runs,One row per agent evaluation run.
+Persona Results,One row per persona per run with truth vs predicted labels.
+Turn Details,One row per chatbot conversation turn.
+Run Summary By Class,Recall by gold outcome class for each run.
+McNemar Comparisons,Paired statistical comparisons between two runs.
+Refresh Log,Timestamp of last export — use for Power BI refresh tracking.
