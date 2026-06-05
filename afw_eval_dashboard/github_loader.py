@@ -39,16 +39,35 @@ def _ssl_context() -> ssl.SSLContext:
     return ctx
 
 
-def _fetch_raw(token: str, owner: str, repo: str, repo_path: str) -> bytes | None:
-    api = f"https://api.github.com/repos/{owner}/{repo}/contents/{repo_path}"
-    req = urllib.request.Request(
-        api,
-        headers={
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.raw",
-            "User-Agent": "afw-team-dashboard",
-        },
+def _fetch_raw(
+    token: str,
+    owner: str,
+    repo: str,
+    repo_path: str,
+    branch: str = "main",
+) -> bytes | None:
+    if token:
+        api = f"https://api.github.com/repos/{owner}/{repo}/contents/{repo_path}"
+        req = urllib.request.Request(
+            api,
+            headers={
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.raw",
+                "User-Agent": "afw-team-dashboard",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, context=_ssl_context(), timeout=120) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return None
+            raise
+
+    raw_url = (
+        f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{repo_path}"
     )
+    req = urllib.request.Request(raw_url, headers={"User-Agent": "afw-team-dashboard"})
     try:
         with urllib.request.urlopen(req, context=_ssl_context(), timeout=120) as resp:
             return resp.read()
@@ -126,10 +145,7 @@ def resolve_github_settings(
         if owner.lower() in ("auto", "me", ""):
             owner = ""
 
-    if not token:
-        return None
-
-    if not owner:
+    if not owner and token:
         req = urllib.request.Request(
             "https://api.github.com/user",
             headers={"Authorization": f"token {token}", "User-Agent": "afw-team-dashboard"},
@@ -137,19 +153,26 @@ def resolve_github_settings(
         with urllib.request.urlopen(req, context=_ssl_context(), timeout=30) as resp:
             owner = json.loads(resp.read().decode())["login"]
 
+    if not owner:
+        owner = "shprasa"
     if not repo:
         repo = "afw-chatbot-eval-agent"
+    if not branch:
+        branch = "main"
 
     return {"token": token, "owner": owner, "repo": repo, "branch": branch}
 
 
 def load_tables_from_github(settings: dict[str, str]) -> dict[str, pd.DataFrame]:
-    token, owner, repo = settings["token"], settings["owner"], settings["repo"]
+    token = settings["token"]
+    owner, repo, branch = settings["owner"], settings["repo"], settings["branch"]
     tables: dict[str, pd.DataFrame] = {}
     for key, path in CSV_TABLES.items():
-        tables[key] = _read_csv_bytes(_fetch_raw(token, owner, repo, path))
+        tables[key] = _read_csv_bytes(
+            _fetch_raw(token, owner, repo, path, branch=branch)
+        )
 
-    manifest = _fetch_raw(token, owner, repo, MANIFEST_PATH)
+    manifest = _fetch_raw(token, owner, repo, MANIFEST_PATH, branch=branch)
     if manifest:
         meta = json.loads(manifest.decode("utf-8"))
         tables["meta"] = pd.DataFrame([meta])
