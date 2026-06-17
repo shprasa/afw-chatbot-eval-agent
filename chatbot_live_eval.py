@@ -1177,10 +1177,104 @@ def render_prompt_improvements_report(rows: list[dict[str, Any]], metrics: dict[
     return "\n".join(lines)
 
 
+def _cursor_report_payload(rows: list[dict[str, Any]], metrics: dict[str, Any]) -> dict[str, Any]:
+    evidence = build_rationale_evidence(rows)
+    confusion = evidence["confusion"]
+    mismatches = evidence["mismatches"]
+    per_q_miss: Counter[str] = Counter()
+    sampled: list[dict[str, Any]] = []
+    for r in mismatches:
+        qk, t_lbl, p_lbl = first_divergence(r)
+        if qk != "none":
+            per_q_miss[qk] += 1
+        sampled.append(
+            {
+                "persona_id": r.get("persona_id"),
+                "truth_label": r.get("truth_label"),
+                "predicted_label": r.get("predicted_label"),
+                "first_divergence": qk,
+                "first_divergence_truth": t_lbl,
+                "first_divergence_pred": p_lbl,
+                "final_reason_codes": (r.get("final_reason_codes") or [])[:6],
+                "final_outcome_notes": (r.get("final_rationales") or {}).get("outcome_notes", ""),
+                "final_summary_notes": (r.get("final_rationales") or {}).get("summary_notes", ""),
+            }
+        )
+    return {
+        "metrics": metrics,
+        "top_confusion_pairs": [
+            {"truth": t, "pred": p, "count": int(n)}
+            for (t, p), n in confusion.most_common(12)
+        ],
+        "top_reason_codes": [
+            {"code": code, "count": int(n)}
+            for code, n in evidence["reason_codes"].most_common(12)
+        ],
+        "top_checkpoint_divergence": [
+            {"checkpoint": qk, "count": int(n)}
+            for qk, n in per_q_miss.most_common(8)
+        ],
+        "mismatch_samples": sampled[:30],
+    }
+
+
+def _generate_cursor_markdown_report(
+    report_kind: str,
+    rows: list[dict[str, Any]],
+    metrics: dict[str, Any],
+) -> str | None:
+    api_key = os.environ.get("CURSOR_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        from cursor_sdk import Agent, AgentOptions, LocalAgentOptions
+    except Exception as exc:
+        LOG.warning("cursor reports disabled: cursor-sdk unavailable (%s)", exc)
+        return None
+
+    payload = _cursor_report_payload(rows, metrics)
+    prompt = (
+        "You are writing AFW evaluation run reports for non-engineering stakeholders.\n"
+        f"Report type: {report_kind}\n"
+        "Write Markdown only (no code fences). Be concrete and cite counts from data.\n"
+        "Use only the structured data provided. Do not invent fields.\n\n"
+        "If report type is 'failure_analysis': include sections for run summary, "
+        "main failure modes, first divergence checkpoints, and 5-10 prioritized fixes.\n"
+        "If report type is 'prompt_improvements': include sections REMOVE and ADD with "
+        "specific replacement language and rationale tied to observed errors.\n\n"
+        "DATA:\n"
+        f"{json.dumps(payload, ensure_ascii=False)}"
+    )
+    try:
+        result = Agent.prompt(
+            prompt,
+            AgentOptions(
+                api_key=api_key,
+                model=os.environ.get("CURSOR_REPORT_MODEL", "auto"),
+                local=LocalAgentOptions(cwd=str(DESK)),
+            ),
+        )
+        status = getattr(result, "status", "")
+        text = str(getattr(result, "result", "") or "").strip()
+        if status != "finished" or not text:
+            LOG.warning("cursor report generation failed (%s): status=%s", report_kind, status)
+            return None
+        return text
+    except Exception as exc:
+        LOG.warning("cursor report generation failed (%s): %s", report_kind, exc)
+        return None
+
+
 def write_iteration_reports(rows: list[dict[str, Any]], metrics: dict[str, Any]) -> tuple[Path, Path]:
     REPORTS.mkdir(parents=True, exist_ok=True)
     failure_md = render_failure_analysis_report(rows, metrics)
     prompt_md = render_prompt_improvements_report(rows, metrics)
+    cursor_failure = _generate_cursor_markdown_report("failure_analysis", rows, metrics)
+    cursor_prompt = _generate_cursor_markdown_report("prompt_improvements", rows, metrics)
+    if cursor_failure:
+        failure_md = cursor_failure
+    if cursor_prompt:
+        prompt_md = cursor_prompt
     FAILURE_REPORT_MD.write_text(failure_md, encoding="utf-8")
     PROMPT_REPORT_MD.write_text(prompt_md, encoding="utf-8")
     return FAILURE_REPORT_MD, PROMPT_REPORT_MD
