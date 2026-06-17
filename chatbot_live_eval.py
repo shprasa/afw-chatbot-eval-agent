@@ -316,6 +316,7 @@ def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
                 return {}
             if raw.startswith("data:") or "\ndata:" in raw:
                 final: dict[str, Any] = {}
+                best_with_session: dict[str, Any] = {}
                 for line in raw.splitlines():
                     s = line.strip()
                     if not s.startswith("data:"):
@@ -327,13 +328,19 @@ def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
                         ev = json.loads(chunk)
                     except json.JSONDecodeError:
                         continue
-                    if isinstance(ev, dict) and ev.get("type") == "done":
-                        return ev
-                    if isinstance(ev, dict) and ev.get("type") == "error":
+                    if not isinstance(ev, dict):
+                        continue
+                    if ev.get("type") == "error":
                         raise RuntimeError(f"chatbot error event: {ev.get('message')}")
-                    if isinstance(ev, dict):
-                        final = ev
-                return final
+                    # keep the last event that carries sessionData
+                    if ev.get("sessionData") or ev.get("eligibility_outcome"):
+                        best_with_session = ev
+                    if ev.get("type") == "done":
+                        # prefer done event; fall through to best_with_session if empty
+                        return ev if (ev.get("sessionData") or ev.get("eligibility_outcome")) else (best_with_session or ev)
+                    final = ev
+                # no done event — return the richest candidate
+                return best_with_session or final
             return json.loads(raw)
         except urllib.error.HTTPError as e:
             last_err = e
@@ -384,15 +391,28 @@ def user_message_turns(row: pd.Series) -> list[tuple[str, str, str | None]]:
 
 
 def gather_outcome(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Pull the canonical outcome label and the full sessionData snapshot."""
+    """Pull the canonical outcome label and the full sessionData snapshot.
+
+    Checks in order:
+      1. sessionData.eligibility_outcome  (MCP structured output)
+      2. top-level eligibility_outcome    (some API versions)
+      3. isManualReview flag              (legacy fallback)
+    """
     sess = payload.get("sessionData") or {}
     if not isinstance(sess, dict):
         sess = {}
     raw = sess.get("eligibility_outcome", "")
-    # the chatbot can also flip manual_review_flag or set isManualReview
+    # fallback: top-level eligibility_outcome outside sessionData
+    if not raw:
+        raw = str(payload.get("eligibility_outcome", "") or "")
+    # fallback: isManualReview flag
     if not raw and payload.get("isManualReview"):
         raw = "manual_review"
-    return canon_label(raw), sess
+    label = canon_label(raw)
+    if not label and raw:
+        LOG.warning("gather_outcome: unrecognised outcome value %r — sessionData keys: %s",
+                    raw, list(sess.keys())[:10])
+    return label, sess
 
 
 def run_persona(
@@ -1287,14 +1307,34 @@ def process_persona(
         "error": result.get("error"),
     }
     append_jsonl_safe(TRANSCRIPT_JSONL, {**result, "score": row_record})
+
+    if not pred_label:
+        # Emit a warning with the raw session snapshots so the chatbot response
+        # format can be diagnosed without re-running.
+        raw_outcomes = [
+            (t.get("question"), t.get("session_eligibility_outcome"), t.get("predicted_outcome"))
+            for t in result.get("turns", [])
+        ]
+        LOG.warning(
+            "[%d/%d] %s — chatbot returned NO PREDICTION "
+            "(sessionData.eligibility_outcome empty on all turns). "
+            "turn snapshots: %s",
+            i, iter_n, result["persona_id"], raw_outcomes,
+        )
+
+    if match_overall is None:
+        match_tag = "no_pred" if not pred_label else "no_truth"
+    else:
+        match_tag = str(match_overall)
+
     LOG.info(
         "[%d/%d] %s truth=%s pred=%s match=%s",
         i,
         iter_n,
         result["persona_id"],
         CODE_NAMES.get(truth_code, "?") if truth_code is not None else "?",
-        pred_label or "?",
-        match_overall if match_overall is not None else "n/a",
+        pred_label or "NO_PREDICTION",
+        match_tag,
     )
     return row_record
 
