@@ -1208,15 +1208,14 @@ def _generate_cursor_markdown_report(
     report_kind: str,
     rows: list[dict[str, Any]],
     metrics: dict[str, Any],
-) -> str | None:
+) -> str:
     api_key = os.environ.get("CURSOR_API_KEY", "").strip()
     if not api_key:
-        return None
+        raise RuntimeError("CURSOR_API_KEY is not set; Cursor AUTO report generation is required.")
     try:
         from cursor_sdk import Agent, AgentOptions, LocalAgentOptions
     except Exception as exc:
-        LOG.warning("cursor reports disabled: cursor-sdk unavailable (%s)", exc)
-        return None
+        raise RuntimeError(f"cursor-sdk import failed: {exc}") from exc
 
     payload = _cursor_report_payload(rows, metrics)
     prompt = (
@@ -1236,31 +1235,26 @@ def _generate_cursor_markdown_report(
             prompt,
             AgentOptions(
                 api_key=api_key,
-                model=os.environ.get("CURSOR_REPORT_MODEL", "auto"),
+                # Enforce AUTO model routing for consistency with local workflow.
+                model="auto",
                 local=LocalAgentOptions(cwd=str(DESK)),
             ),
         )
         status = getattr(result, "status", "")
         text = str(getattr(result, "result", "") or "").strip()
         if status != "finished" or not text:
-            LOG.warning("cursor report generation failed (%s): status=%s", report_kind, status)
-            return None
+            raise RuntimeError(
+                f"Cursor AUTO report generation failed for {report_kind}: status={status}"
+            )
         return text
     except Exception as exc:
-        LOG.warning("cursor report generation failed (%s): %s", report_kind, exc)
-        return None
+        raise RuntimeError(f"Cursor AUTO report generation failed for {report_kind}: {exc}") from exc
 
 
 def write_iteration_reports(rows: list[dict[str, Any]], metrics: dict[str, Any]) -> tuple[Path, Path]:
     REPORTS.mkdir(parents=True, exist_ok=True)
-    failure_md = render_failure_analysis_report(rows, metrics)
-    prompt_md = render_prompt_improvements_report(rows, metrics)
-    cursor_failure = _generate_cursor_markdown_report("failure_analysis", rows, metrics)
-    cursor_prompt = _generate_cursor_markdown_report("prompt_improvements", rows, metrics)
-    if cursor_failure:
-        failure_md = cursor_failure
-    if cursor_prompt:
-        prompt_md = cursor_prompt
+    failure_md = _generate_cursor_markdown_report("failure_analysis", rows, metrics)
+    prompt_md = _generate_cursor_markdown_report("prompt_improvements", rows, metrics)
     FAILURE_REPORT_MD.write_text(failure_md, encoding="utf-8")
     PROMPT_REPORT_MD.write_text(prompt_md, encoding="utf-8")
     return FAILURE_REPORT_MD, PROMPT_REPORT_MD
