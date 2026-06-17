@@ -316,7 +316,6 @@ def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
                 return {}
             if raw.startswith("data:") or "\ndata:" in raw:
                 final: dict[str, Any] = {}
-                best_with_session: dict[str, Any] = {}
                 for line in raw.splitlines():
                     s = line.strip()
                     if not s.startswith("data:"):
@@ -332,15 +331,10 @@ def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
                         continue
                     if ev.get("type") == "error":
                         raise RuntimeError(f"chatbot error event: {ev.get('message')}")
-                    # keep the last event that carries sessionData
-                    if ev.get("sessionData") or ev.get("eligibility_outcome"):
-                        best_with_session = ev
                     if ev.get("type") == "done":
-                        # prefer done event; fall through to best_with_session if empty
-                        return ev if (ev.get("sessionData") or ev.get("eligibility_outcome")) else (best_with_session or ev)
+                        return ev
                     final = ev
-                # no done event — return the richest candidate
-                return best_with_session or final
+                return final
             return json.loads(raw)
         except urllib.error.HTTPError as e:
             last_err = e
@@ -391,23 +385,15 @@ def user_message_turns(row: pd.Series) -> list[tuple[str, str, str | None]]:
 
 
 def gather_outcome(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    """Pull the canonical outcome label and the full sessionData snapshot.
+    """Pull predicted label from POST sessionData only.
 
-    Checks in order:
-      1. sessionData.eligibility_outcome  (MCP structured output)
-      2. top-level eligibility_outcome    (some API versions)
-      3. isManualReview flag              (legacy fallback)
+    Prediction source is strictly sessionData.eligibility_outcome to keep
+    parity with local eval behavior and avoid non-session heuristics.
     """
     sess = payload.get("sessionData") or {}
     if not isinstance(sess, dict):
         sess = {}
     raw = sess.get("eligibility_outcome", "")
-    # fallback: top-level eligibility_outcome outside sessionData
-    if not raw:
-        raw = str(payload.get("eligibility_outcome", "") or "")
-    # fallback: isManualReview flag
-    if not raw and payload.get("isManualReview"):
-        raw = "manual_review"
     label = canon_label(raw)
     if not label and raw:
         LOG.warning("gather_outcome: unrecognised outcome value %r — sessionData keys: %s",
