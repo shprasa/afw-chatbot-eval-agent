@@ -1,0 +1,108 @@
+{
+  "encoding_note": "truth/pred use 1=eligible, 0=ineligible; chatbot insufficient_information/manual_review turns are skip (not 0)",
+  "by_workbook_binary": {
+    "AFW_120_User_Test_Cases_Original_Style_Short": {
+      "n": 20,
+      "n_scored": 7,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  },
+  "n_personas": 20,
+  "n_scored": 7,
+  "correct": 0,
+  "final_outcome_accuracy": 0.0,
+  "by_truth_class": {
+    "is_eligible": {
+      "n_in_class": 0,
+      "correct": 0,
+      "recall": null
+    },
+    "is_ineligible": {
+      "n_in_class": 0,
+      "correct": 0,
+      "recall": null
+    },
+    "is_manual_review": {
+      "n_in_class": 0,
+      "correct": 0,
+      "recall": null
+    },
+    "is_insufficient_information": {
+      "n_in_class": 20,
+      "correct": 0,
+      "recall": 0.0
+    }
+  },
+  "by_dummy_column_accuracy": {
+    "is_eligible": {
+      "n": 7,
+      "accuracy": 1.0
+    },
+    "is_ineligible": {
+      "n": 7,
+      "accuracy": 1.0
+    },
+    "is_manual_review": {
+      "n": 7,
+      "accuracy": 0.0
+    },
+    "is_insufficient_information": {
+      "n": 7,
+      "accuracy": 0.0
+    }
+  },
+  "by_workbook": {
+    "AFW_120_User_Test_Cases_Original_Style_Short": {
+      "n": 20,
+      "n_scored": 7,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  },
+  "by_question": {
+    "q1": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "q2": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "q3": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "q4": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": null
+    },
+    "q5": {
+      "n": 1,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "q6": {
+      "n": 4,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "q7": {
+      "n": 4,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "q8": {
+      "n": 7,
+      "correct": 0,
+      "accuracy": 0.0
+    }
+  },
+  "question_level_total": 16,
+  "question_level_correct": 0,
+  "question_level_accuracy": 0.0
+}
