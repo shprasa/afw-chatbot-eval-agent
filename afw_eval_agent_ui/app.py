@@ -87,8 +87,33 @@ def _try_normalize_owner_email() -> str | None:
         return None
 
 
-def _github_env() -> dict[str, str]:
-    return credentials_as_env(resolve_credentials(secrets=getattr(st, "secrets", None)))
+def _job_env() -> dict[str, str]:
+    env = credentials_as_env(resolve_credentials(secrets=getattr(st, "secrets", None)))
+    secrets_obj = getattr(st, "secrets", None)
+    cursor_key = ""
+    if secrets_obj is not None:
+        try:
+            cursor_key = str(secrets_obj.get("CURSOR_API_KEY", "")).strip()
+        except Exception:
+            cursor_key = ""
+        if not cursor_key:
+            try:
+                cursor_key = str(secrets_obj["cursor"].get("api_key", "")).strip()
+            except Exception:
+                cursor_key = ""
+        if not cursor_key:
+            try:
+                cursor_key = str(secrets_obj["cursor"]["api_key"]).strip()
+            except Exception:
+                cursor_key = ""
+        if not cursor_key:
+            try:
+                cursor_key = str(secrets_obj.get("cursor_api_key", "")).strip()
+            except Exception:
+                cursor_key = ""
+    if cursor_key:
+        env["CURSOR_API_KEY"] = cursor_key
+    return env
 
 
 def _auto_publish(ws: Workspace, message: str) -> dict:
@@ -470,7 +495,7 @@ def render_agent() -> None:
                             resume=resume,
                             eval_limit=int(limit) if limit else None,
                             parallel_workers=int(workers),
-                            github_env=_github_env(),
+                            github_env=_job_env(),
                         )
                         st.session_state["eval_show_runs_panel"] = True
                         st.success(
