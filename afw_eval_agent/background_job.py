@@ -384,6 +384,8 @@ def execute_job(workspace_root: Path | None = None) -> int:
             )
         else:
             state["github_publish_status"] = f"Repo sync skipped: {pub['error']}"
+            # Surface the reason in the job log so it appears in the UI log panel
+            append_job_log(ws, email, f"WARNING: GitHub publish failed — {pub['error']}")
         save_job_state(ws, email, state)
 
         ok, msg = send_eval_complete_email(
@@ -406,7 +408,22 @@ def execute_job(workspace_root: Path | None = None) -> int:
         state["error"] = str(exc)
         append_job_log(ws, email, f"ERROR: {exc}")
         save_job_state(ws, email, state)
+
+        # Still try to push whatever partial artifacts exist so live reports
+        # and predictions are visible in GitHub even after a failed/aborted run.
         if not cancelled:
+            pub = try_publish_workspace(
+                ws,
+                message=f"Eval agent: partial sync after failure ({state.get('run_label','eval')})",
+            )
+            state["github_publish_status"] = (
+                f"Partial sync: {pub['count']} files pushed."
+                if pub["ok"]
+                else f"Repo sync skipped: {pub['error']}"
+            )
+            append_job_log(ws, email, f"GitHub publish: {state['github_publish_status']}")
+            save_job_state(ws, email, state)
+
             ok, msg = send_eval_failed_email(
                 email,
                 run_label=state.get("run_label", "eval"),
