@@ -153,6 +153,20 @@ def _workspace_publish_paths(ws: Workspace) -> list[Path]:
         for f in ws.templates.glob("*.xlsx"):
             if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
                 paths.append(f)
+    # Publish the repo-root reports/ folder — this is where _archive_run copies
+    # the three report files so they live at a predictable, stable path.
+    repo_reports = AGENT_ROOT / "reports"
+    if repo_reports.is_dir():
+        for f in repo_reports.glob("*"):
+            if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
+                paths.append(f)
+    # Also publish live workspace reports/artifacts directly so partial runs
+    # that never reach _archive_run still get their outputs into GitHub.
+    for live_dir in (ws.local_reports, ws.local_artifacts):
+        if live_dir.is_dir():
+            for f in live_dir.glob("*"):
+                if f.is_file() and f.stat().st_size <= MAX_FILE_BYTES:
+                    paths.append(f)
     return paths
 
 
