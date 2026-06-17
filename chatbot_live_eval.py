@@ -1218,15 +1218,49 @@ def _generate_cursor_markdown_report(
         raise RuntimeError(f"cursor-sdk import failed: {exc}") from exc
 
     payload = _cursor_report_payload(rows, metrics)
+    if report_kind == "failure_analysis":
+        report_instructions = (
+            "Write a single-run AFW Failure Analysis that matches the style used in "
+            "the AFW prompt comparison report.\n"
+            "Use EXACT heading structure below and keep the same direct wording style:\n"
+            "# Failure Analysis - <run label if known>\n"
+            "## Run Summary\n"
+            "## Where the errors concentrate\n"
+            "## Dominant confusion patterns\n"
+            "## Interpretation specific to this run\n"
+            "## Weakest decision checkpoints\n"
+            "## Incorrect Persona Examples\n"
+            "For concentration/checkpoint sections, order highest count to lowest.\n"
+            "For confusion patterns, render as '<count>x: true <truth> was predicted as <pred>'.\n"
+            "In interpretation, explicitly mention strongest and weakest class by recall.\n"
+        )
+    elif report_kind == "prompt_improvements":
+        report_instructions = (
+            "Write AFW Prompt Improvement Recommendations in the same style as the "
+            "reference report language.\n"
+            "Use EXACT heading structure below:\n"
+            "# Prompt Improvement Recommendations - <run label if known>\n"
+            "## Recommendation Basis\n"
+            "## Prioritized Recommendations\n"
+            "Then list recommendations with priority tags in this format:\n"
+            "- [High] ...\n"
+            "- [Medium] ...\n"
+            "- [Targeted] ...\n"
+            "- [Structural] ...\n"
+            "Each recommendation must cite the concrete observed error counts/patterns "
+            "that justify it and include specific suggested prompt language edits.\n"
+        )
+    else:
+        raise RuntimeError(f"unsupported cursor report kind: {report_kind}")
+
     prompt = (
         "You are writing AFW evaluation run reports for non-engineering stakeholders.\n"
         f"Report type: {report_kind}\n"
         "Write Markdown only (no code fences). Be concrete and cite counts from data.\n"
-        "Use only the structured data provided. Do not invent fields.\n\n"
-        "If report type is 'failure_analysis': include sections for run summary, "
-        "main failure modes, first divergence checkpoints, and 5-10 prioritized fixes.\n"
-        "If report type is 'prompt_improvements': include sections REMOVE and ADD with "
-        "specific replacement language and rationale tied to observed errors.\n\n"
+        "Use only the structured data provided. Do not invent fields.\n"
+        "Match the tone and phrasing style of AFW evaluation deliverables "
+        "(clear, factual, concise, action-oriented).\n\n"
+        f"{report_instructions}\n"
         "DATA:\n"
         f"{json.dumps(payload, ensure_ascii=False)}"
     )
