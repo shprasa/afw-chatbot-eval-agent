@@ -16,7 +16,7 @@ from typing import Any
 
 import pandas as pd
 
-from .config import AGENT_ROOT, Workspace
+from .config import AGENT_ROOT, WORKSPACE_DIRNAME, Workspace
 from .powerbi_export import export_powerbi_data
 from .registry import get_model, list_prompt_labels, resolve_prompt_reference_file
 
@@ -168,6 +168,28 @@ def _archive_run(
     dataset_copy = run_dir / dataset_xlsx.name
     if not dataset_copy.exists():
         shutil.copy2(dataset_xlsx, dataset_copy)
+
+    # Copy the three reports to the repo-root reports/ folder.
+    # Rename them to  <base>_<run_label>_<YYYYMMDD>_<HHMMSS>.<ext>
+    # so the reports/ folder is self-describing without needing to open
+    # a run manifest.
+    repo_reports_dir = AGENT_ROOT / "reports"
+    repo_reports_dir.mkdir(parents=True, exist_ok=True)
+    _safe_run_label = _safe_suffix(run_label)
+    _REPORT_BASE = {
+        "accuracy_json": "chatbot_live_accuracy",
+        "failure_md": "chatbot_live_failure_analysis",
+        "prompt_md": "chatbot_live_prompt_improvements",
+    }
+    _REPORT_EXT = {
+        "accuracy_json": ".json",
+        "failure_md": ".md",
+        "prompt_md": ".md",
+    }
+    for key in ("accuracy_json", "failure_md", "prompt_md"):
+        src = paths[key]
+        dest_name = f"{_REPORT_BASE[key]}_{_safe_run_label}_{stamp}{_REPORT_EXT[key]}"
+        shutil.copy2(src, repo_reports_dir / dest_name)
 
     rel_artifacts = {k: _rel_repo_path(v) for k, v in archived.items()}
     entry: dict[str, Any] = {
