@@ -1,5 +1,28 @@
 [
   {
+    "run_id": "20260720_204947_database_update_test_claude_v10",
+    "run_label": "database_update_test",
+    "display_name": "database_update_test | Claude (angel-flight-chatbot-claude) | System Prompt v10",
+    "model_key": "claude",
+    "model_display": "Claude (angel-flight-chatbot-claude)",
+    "api_base_url": "https://angel-flight-chatbot-claude.azurewebsites.net",
+    "prompt_key": "v10",
+    "prompt_label": "System Prompt v10",
+    "prompt_file": "prompts/prompt_extract_v10.txt",
+    "dataset_xlsx": "workspace/datasets/AFW_120_User_Test_Cases_Original_Style_Short.xlsx",
+    "dataset_sheet": "120_test_cases",
+    "output_suffix": "_database_update_test_claude_v10",
+    "created_utc": "2026-07-20T20:49:47.330473+00:00",
+    "artifacts": {
+      "predictions": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_predictions_database_update_test_claude_v10.csv",
+      "transcripts": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_transcripts_database_update_test_claude_v10.jsonl",
+      "accuracy_json": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_accuracy_database_update_test_claude_v10.json",
+      "failure_md": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_failure_analysis_database_update_test_claude_v10.md",
+      "prompt_md": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_prompt_improvements_database_update_test_claude_v10.md"
+    },
+    "predictions_csv": "workspace/runs/20260720_204947_database_update_test_claude_v10/chatbot_live_predictions_database_update_test_claude_v10.csv"
+  },
+  {
     "run_id": "20260617_172137_eval_run_test_claude_v10",
     "run_label": "eval_run_test",
     "display_name": "eval_run_test | Claude (angel-flight-chatbot-claude) | System Prompt v10",
